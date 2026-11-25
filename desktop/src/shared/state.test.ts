@@ -1,6 +1,6 @@
 import { DEFAULT_STYLE } from './style'
 import { describe, expect, it } from 'vitest'
-import { itemFromText } from './schedule'
+import { itemFromMedia, itemFromSong, itemFromText } from './schedule'
 import {
   backgroundMissing,
   clampDim,
@@ -295,11 +295,32 @@ describe('backgrounds', () => {
     expect('background' in previewItem(state)!).toBe(false)
   })
 
-  it('copies the background when going live so later edits do not change the screen', () => {
+  it('changes the background on the screen right away when the live item follows it', () => {
     let state = reducer(withMedia(), { type: 'goLive' })
-    state = reducer(state, { type: 'setItemBackground', itemId: state.previewItemId!, background: 'm1' })
     expect(deriveOutput(state).background).toBeNull()
-    state = reducer(state, { type: 'goLive' })
+    state = reducer(state, { type: 'setItemBackground', itemId: state.previewItemId!, background: 'm1' })
+    expect(deriveOutput(state).background?.kind).toBe('image')
+    state = reducer(state, { type: 'setItemBackground', itemId: state.previewItemId!, background: undefined })
+    expect(deriveOutput(state).background).toBeNull()
+  })
+
+  it('lets the service background change what is live, unless the item has its own', () => {
+    let state = reducer(withMedia(), { type: 'goLive' })
+    state = reducer(state, { type: 'setDefaultBackground', mediaId: 'm1' })
+    expect(deriveOutput(state).background?.kind).toBe('image')
+    state = reducer(state, { type: 'setItemBackground', itemId: state.previewItemId!, background: null })
+    state = reducer(state, { type: 'setDefaultBackground', mediaId: 'm1' })
+    expect(deriveOutput(state).background).toBeNull()
+  })
+
+  it('shows a song with its own background and a media item full screen', () => {
+    const song = itemFromSong('Test', 'Line one', 12, 'm1')
+    expect(song.background).toBe('m1')
+    expect(itemFromSong('Test', 'Line one').background).toBeUndefined()
+    const poster = itemFromMedia({ id: 'm1', name: 'Poster', kind: 'image', file: 'a.png', size: 1 })
+    expect(poster.type).toBe('image')
+    expect(poster.background).toBe('m1')
+    const state = reducer(withMedia(), { type: 'showNow', item: poster })
     expect(deriveOutput(state).background?.kind).toBe('image')
   })
 

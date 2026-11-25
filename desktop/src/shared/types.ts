@@ -11,7 +11,7 @@ export interface Slide {
   reference?: string
 }
 
-export type ItemType = 'info' | 'song' | 'scripture' | 'announcement' | 'offering' | 'video'
+export type ItemType = 'info' | 'song' | 'scripture' | 'announcement' | 'offering' | 'video' | 'image'
 
 export type ItemStatus = 'ready' | 'missing'
 

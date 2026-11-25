@@ -3,6 +3,7 @@ import {
   IconEraser,
   IconMoon,
   IconPhoto,
+  IconPhotoSpark,
   IconPlayerPlayFilled,
   IconScreenShare,
   IconSquareFilled,
@@ -28,7 +29,9 @@ import { isBibleText } from '../../shared/validate'
 import { BibleImportDialog } from './BibleImportDialog'
 import { LivePane, PreviewPane, SchedulePane } from './Panes'
 import { Tray } from './Tray'
+import { BackgroundMenu } from './BackgroundPicker'
 import { sanitizeStyle } from '../../shared/style'
+import { itemFromMedia } from '../../shared/schedule'
 
 const STORAGE_KEY = 'sas.v1'
 
@@ -66,6 +69,7 @@ export function App(): React.JSX.Element {
   const [state, dispatch] = useReducer(reducer, undefined, () => createInitialState(loadPersisted()))
   const [display, setDisplay] = useState<DisplayInfo>({ count: 1, outputOpen: false, outputOnSecondary: false })
   const [alertOpen, setAlertOpen] = useState(false)
+  const [bgOpen, setBgOpen] = useState(false)
   const [alertDraft, setAlertDraft] = useState('')
   const [versions, setVersions] = useState(installedVersions)
   const [bibleVersion, setBibleVersion] = useState('KJV')
@@ -152,6 +156,24 @@ export function App(): React.JSX.Element {
     </button>
   )
 
+  useEffect(() => {
+    if (!bgOpen) return
+    const close = (e: PointerEvent): void => {
+      if (!(e.target instanceof Element) || !e.target.closest('.bg-wrap')) setBgOpen(false)
+    }
+    const esc = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') setBgOpen(false)
+    }
+    window.addEventListener('pointerdown', close)
+    window.addEventListener('keydown', esc)
+    return () => {
+      window.removeEventListener('pointerdown', close)
+      window.removeEventListener('keydown', esc)
+    }
+  }, [bgOpen])
+
+  const addMedia = (): void => void window.api.addMedia().then((media) => dispatch({ type: 'setMedia', media }))
+
   let projector = { cls: 'amber', text: 'Projector: output closed' }
   if (display.outputOpen && display.outputOnSecondary) projector = { cls: 'green', text: 'Projector connected' }
   else if (display.outputOpen) projector = { cls: 'amber', text: 'Output in a window (no second screen)' }
@@ -178,6 +200,24 @@ export function App(): React.JSX.Element {
                   <button className="btn small" onClick={() => { dispatch({ type: 'setAlert', text: null }); setAlertDraft(''); setAlertOpen(false) }}>Hide</button>
                 </div>
               </div>
+            )}
+          </div>
+          <div className="alert-wrap bg-wrap">
+            <button className={`btn${bgOpen ? ' active' : ''}`} aria-pressed={bgOpen} onClick={() => setBgOpen((open) => !open)}>
+              <IconPhotoSpark size={18} /> Background
+            </button>
+            {bgOpen && (
+              <BackgroundMenu
+                media={state.media}
+                serviceBackground={state.defaultBackground}
+                itemTitle={item?.title ?? null}
+                itemBackground={item?.background}
+                dim={state.dim}
+                onAdd={addMedia}
+                onService={(id) => dispatch({ type: 'setDefaultBackground', mediaId: id })}
+                onItem={(background) => item && dispatch({ type: 'setItemBackground', itemId: item.id, background })}
+                onDim={(dim) => dispatch({ type: 'setDim', dim })}
+              />
             )}
           </div>
           {modeButton('logo', 'Logo', <IconPhoto size={18} />)}
@@ -245,12 +285,12 @@ export function App(): React.JSX.Element {
               setBibleVersion('KJV')
             })
         }}
-        songPreview={(slide) => ({
+        songPreview={(slide, background) => ({
           mode: 'slide',
           slide,
           theme: state.outputTheme,
           alert: null,
-          background: resolveBackground(state.defaultBackground, state.media),
+          background: resolveBackground(background === undefined ? state.defaultBackground : background, state.media),
           dim: state.dim,
           style: state.style
         })}
@@ -266,15 +306,10 @@ export function App(): React.JSX.Element {
         }}
         media={{
           media: state.media,
-          itemTitle: item?.title ?? null,
-          itemBackground: item?.background,
-          defaultBackground: state.defaultBackground,
-          dim: state.dim,
-          onAdd: () => void window.api.addMedia().then((media) => dispatch({ type: 'setMedia', media })),
+          onAdd: addMedia,
           onRemove: (id) => void window.api.removeMedia(id).then((media) => dispatch({ type: 'setMedia', media })),
-          onSetItem: (background) => item && dispatch({ type: 'setItemBackground', itemId: item.id, background }),
-          onSetDefault: (mediaId) => dispatch({ type: 'setDefaultBackground', mediaId }),
-          onDim: (dim) => dispatch({ type: 'setDim', dim })
+          onShow: (file) => dispatch({ type: 'showNow', item: itemFromMedia(file) }),
+          onSchedule: (file) => dispatch({ type: 'addItem', item: itemFromMedia(file) })
         }}
       />
 

@@ -41,7 +41,7 @@ interface Props {
   onShowNow: (item: ScheduleItem, index?: number) => void
   media: React.ComponentProps<typeof MediaTab>
   /** Builds what a slide looks like on the screen (theme and background), for the song editor preview. */
-  songPreview: (slide: Slide) => OutputState
+  songPreview: (slide: Slide, background?: string | null) => OutputState
   style: DisplayStyle
   onStyle: (style: DisplayStyle) => void
   bibles: BiblePickerProps
@@ -69,7 +69,7 @@ export function Tray({ expanded, onToggleExpanded, tab, onTab, onAdd, onShowNow,
       <div className="tray-body" ref={bodyRef}>
         {/* Every tab stays mounted so what you typed and picked is still there when you come back. */}
         <div className="tab-pane" hidden={tab !== 'songs'}>
-          <Songs onAdd={onAdd} onShowNow={onShowNow} preview={songPreview} />
+          <Songs onAdd={onAdd} onShowNow={onShowNow} preview={songPreview} media={media.media} onAddMedia={media.onAdd} />
         </div>
         <div className="tab-pane" hidden={tab !== 'scriptures'}>
           <Scriptures onAdd={onAdd} onShowNow={onShowNow} {...bibles} />

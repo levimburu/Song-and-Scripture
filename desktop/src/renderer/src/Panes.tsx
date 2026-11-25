@@ -3,6 +3,7 @@ import {
   IconBook,
   IconInfoCircle,
   IconMusic,
+  IconPhoto,
   IconSpeakerphone,
   IconCoin,
   IconTrash,
@@ -19,7 +20,8 @@ const TYPE_ICONS: Record<ItemType, typeof IconMusic> = {
   scripture: IconBook,
   announcement: IconSpeakerphone,
   offering: IconCoin,
-  video: IconVideo
+  video: IconVideo,
+  image: IconPhoto
 }
 
 function slideOutput(slide: Slide | null, theme: Theme, background: OutputBackground | null = null, dim = DEFAULT_DIM, style: DisplayStyle = DEFAULT_STYLE): OutputState {

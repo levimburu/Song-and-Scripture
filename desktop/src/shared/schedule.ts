@@ -1,16 +1,30 @@
 import type { BibleResult } from './bible'
 import { uid } from './ids'
 import { splitLyrics } from './lyrics'
-import type { ItemStatus, ItemType, ScheduleItem } from './types'
+import type { ItemStatus, ItemType, MediaFile, ScheduleItem } from './types'
 
-export function itemFromSong(title: string, lyrics: string, maxLines?: number): ScheduleItem {
+export function itemFromSong(title: string, lyrics: string, maxLines?: number, background?: string | null): ScheduleItem {
   const id = uid('item')
-  return {
+  const item: ScheduleItem = {
     id,
     type: 'song',
     title,
     slides: splitLyrics(lyrics, { idPrefix: id, maxLines }),
     status: 'ready'
+  }
+  return background === undefined ? item : { ...item, background }
+}
+
+/** A photo or video shown full screen, for posters and clips during the service. */
+export function itemFromMedia(media: MediaFile): ScheduleItem {
+  const id = uid('item')
+  return {
+    id,
+    type: media.kind === 'video' ? 'video' : 'image',
+    title: media.name,
+    status: 'ready',
+    background: media.id,
+    slides: [{ id: `${id}-1`, kind: 'text', label: media.name, lines: [] }]
   }
 }
 

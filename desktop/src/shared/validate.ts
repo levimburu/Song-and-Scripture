@@ -8,7 +8,8 @@ const ITEM_TYPES: ReadonlySet<string> = new Set<ItemType>([
   'scripture',
   'announcement',
   'offering',
-  'video'
+  'video',
+  'image'
 ])
 const ITEM_STATUSES: ReadonlySet<string> = new Set<ItemStatus>(['ready', 'missing'])
 const SLIDE_KINDS: ReadonlySet<string> = new Set<SectionKind>([

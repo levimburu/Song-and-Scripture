@@ -7,6 +7,8 @@ export interface Song {
   lyrics: string
   /** How many lines go on one screen (1 to 12). Missing means one paragraph per screen. */
   linesPerScreen?: number
+  /** undefined = use the service background, null = none, string = a media id. */
+  background?: string | null
 }
 
 export const MAX_SONGS = 5000
@@ -32,7 +34,8 @@ export function isSong(value: unknown): value is Song {
     typeof v.lyrics === 'string' &&
     v.lyrics.length <= MAX_LYRICS &&
     (v.linesPerScreen === undefined ||
-      (typeof v.linesPerScreen === 'number' && Number.isInteger(v.linesPerScreen) && v.linesPerScreen >= 1 && v.linesPerScreen <= 12))
+      (typeof v.linesPerScreen === 'number' && Number.isInteger(v.linesPerScreen) && v.linesPerScreen >= 1 && v.linesPerScreen <= 12)) &&
+    (v.background === undefined || v.background === null || typeof v.background === 'string')
   )
 }
 

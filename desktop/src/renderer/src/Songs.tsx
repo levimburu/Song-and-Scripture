@@ -3,7 +3,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { isSectionHeader, splitLyrics } from '../../shared/lyrics'
 import { itemFromSong } from '../../shared/schedule'
 import { DEFAULT_LINES, newSong, parseSongs, searchSongs, seedSongs, WHOLE_SECTION, type Song } from '../../shared/songs'
-import type { OutputState, ScheduleItem, Slide } from '../../shared/types'
+import type { MediaFile, OutputState, ScheduleItem, Slide } from '../../shared/types'
+import { BackgroundPicker } from './BackgroundPicker'
 import { SlideView } from './SlideView'
 
 const SONGS_KEY = 'sas.songs.v1'
@@ -19,15 +20,17 @@ function loadSongs(): Song[] {
 interface Props {
   onAdd: (item: ScheduleItem) => void
   onShowNow: (item: ScheduleItem, index?: number) => void
-  preview: (slide: Slide) => OutputState
+  preview: (slide: Slide, background?: string | null) => OutputState
+  media: MediaFile[]
+  onAddMedia: () => void
 }
 
-export function Songs({ onAdd, onShowNow, preview }: Props): React.JSX.Element {
+export function Songs({ onAdd, onShowNow, preview, media, onAddMedia }: Props): React.JSX.Element {
   const [songs, setSongs] = useState<Song[]>(loadSongs)
   const [query, setQuery] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [pickedSlide, setPickedSlide] = useState(0)
-  const [editing, setEditing] = useState<{ id: string | null; title: string; lyrics: string; lines: number } | null>(null)
+  const [editing, setEditing] = useState<{ id: string | null; title: string; lyrics: string; lines: number; background?: string | null } | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const listRef = useRef<HTMLUListElement>(null)
   const [caret, setCaret] = useState(0)
@@ -56,7 +59,7 @@ export function Songs({ onAdd, onShowNow, preview }: Props): React.JSX.Element {
   }
 
   function show(index = pickedSlide): void {
-    if (song) onShowNow(itemFromSong(song.title, song.lyrics, lines), index)
+    if (song) onShowNow(itemFromSong(song.title, song.lyrics, lines, song.background), index)
   }
 
   function setLines(value: number): void {
@@ -70,10 +73,10 @@ export function Songs({ onAdd, onShowNow, preview }: Props): React.JSX.Element {
     const title = editing.title.trim()
     if (title === '' || editing.lyrics.trim() === '') return
     if (editing.id) {
-      setSongs((all) => all.map((s) => (s.id === editing.id ? { ...s, title, lyrics: editing.lyrics.replace(/\r\n?/g, '\n').trim(), linesPerScreen: editing.lines } : s)))
+      setSongs((all) => all.map((s) => (s.id === editing.id ? { ...s, title, lyrics: editing.lyrics.replace(/\r\n?/g, '\n').trim(), linesPerScreen: editing.lines, background: editing.background } : s)))
       setSelectedId(editing.id)
     } else {
-      const created = { ...newSong(title, editing.lyrics), linesPerScreen: editing.lines }
+      const created = { ...newSong(title, editing.lyrics), linesPerScreen: editing.lines, background: editing.background }
       setSongs((all) => [...all, created])
       setSelectedId(created.id)
       setQuery('')
@@ -151,7 +154,7 @@ export function Songs({ onAdd, onShowNow, preview }: Props): React.JSX.Element {
               key={s.id}
               className={`song-row${song?.id === s.id ? ' picked' : ''}`}
               onClick={() => select(s.id)}
-              onDoubleClick={() => onShowNow(itemFromSong(s.title, s.lyrics, s.linesPerScreen ?? DEFAULT_LINES), 0)}
+              onDoubleClick={() => onShowNow(itemFromSong(s.title, s.lyrics, s.linesPerScreen ?? DEFAULT_LINES, s.background), 0)}
               title="Double-click to show"
             >
               {s.title}
@@ -182,12 +185,12 @@ export function Songs({ onAdd, onShowNow, preview }: Props): React.JSX.Element {
                 <button className="btn small go-live" onClick={() => show()}>
                   <IconPlayerPlayFilled size={14} /> Show now
                 </button>
-                <button className="btn small" onClick={() => onAdd(itemFromSong(song.title, song.lyrics, lines))}>
+                <button className="btn small" onClick={() => onAdd(itemFromSong(song.title, song.lyrics, lines, song.background))}>
                   <IconPlus size={14} /> Add
                 </button>
                 <button
                   className="btn small"
-                  onClick={() => setEditing({ id: song.id, title: song.title, lyrics: song.lyrics, lines })}
+                  onClick={() => setEditing({ id: song.id, title: song.title, lyrics: song.lyrics, lines, background: song.background })}
                   aria-label="Edit song"
                 >
                   <IconEdit size={14} /> Edit
@@ -253,7 +256,7 @@ export function Songs({ onAdd, onShowNow, preview }: Props): React.JSX.Element {
             </label>
             <div className="editor-preview" aria-label="Preview">
               <div className="screen-frame">
-                <SlideView output={preview(caretSlide ?? { id: 'p', kind: 'verse', label: '', lines: [''] })} compact />
+                <SlideView output={preview(caretSlide ?? { id: 'p', kind: 'verse', label: '', lines: [''] }, editing.background)} compact />
               </div>
               <span className="muted">Preview of the screen your cursor is in.</span>
             </div>
@@ -271,6 +274,16 @@ export function Songs({ onAdd, onShowNow, preview }: Props): React.JSX.Element {
                 </button>
               ))}
               <span className="muted">at a time{stanzaCount > 0 && `: ${stanzaCount} screen${stanzaCount === 1 ? '' : 's'}`}.</span>
+            </div>
+            <div className="song-bg">
+              <span>Background for this song</span>
+              <BackgroundPicker
+                media={media}
+                value={editing.background}
+                onChange={(background) => setEditing({ ...editing, background })}
+                onAdd={onAddMedia}
+                inheritLabel="Same as service"
+              />
             </div>
             <p className="muted">
               Each paragraph is one screen: press Enter twice (leave a blank line) where you want the next screen to start.

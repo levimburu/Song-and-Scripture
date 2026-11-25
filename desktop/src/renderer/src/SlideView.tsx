@@ -1,9 +1,9 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import type { OutputState } from '../../shared/types'
+import './fonts'
 
 const W = 1920
 const H = 1080
-const MAX_FONT = 150
 const MIN_FONT = 36
 
 interface Props {
@@ -38,12 +38,15 @@ export function SlideView({ output, compact = false, animate = false }: Props): 
   const slide = output.mode === 'slide' ? output.slide : null
   const lines = slide?.lines
   const isScripture = slide?.kind === 'scripture'
+  const style = output.style
+  const textStyle = isScripture ? style.scripture : style.songs
+  const ref = style.reference
 
   useLayoutEffect(() => {
     const el = textRef.current
     if (!el || !lines) return
     let low = MIN_FONT
-    let high = MAX_FONT
+    let high = Math.max(MIN_FONT, textStyle.maxSize)
     while (low < high) {
       const mid = Math.ceil((low + high) / 2)
       el.style.fontSize = `${mid}px`
@@ -51,7 +54,7 @@ export function SlideView({ output, compact = false, animate = false }: Props): 
       else high = mid - 1
     }
     el.style.fontSize = `${low}px`
-  }, [lines, isScripture])
+  }, [lines, isScripture, textStyle.maxSize, textStyle.font, textStyle.bold])
 
   const bg =
     (output.mode === 'slide' || output.mode === 'clear') && output.background && output.background.url !== failedUrl
@@ -78,16 +81,45 @@ export function SlideView({ output, compact = false, animate = false }: Props): 
         )}
         {output.mode === 'logo' && <div className="screen-logo">Song and Scripture</div>}
         {slide && (
-          <div className="screen-content">
+          <div
+            className="screen-content"
+            style={slide.reference && ref.show && ref.position === 'top' ? { padding: `${ref.size + 110}px 140px 90px` } : undefined}
+          >
             <div
               ref={textRef}
               className={`screen-text ${isScripture ? 'screen-scripture' : 'screen-lyrics'}`}
+              style={{
+                fontFamily: `'${textStyle.font}', system-ui, sans-serif`,
+                fontWeight: textStyle.bold ? 700 : 400,
+                color: textStyle.color ?? undefined,
+                textAlign: textStyle.align,
+                alignItems: textStyle.align === 'left' ? 'flex-start' : textStyle.align === 'right' ? 'flex-end' : 'center',
+                justifyContent: textStyle.valign === 'top' ? 'flex-start' : textStyle.valign === 'bottom' ? 'flex-end' : 'center',
+                textShadow: textStyle.shadow ? '0 4px 14px rgba(0,0,0,0.85), 0 1px 3px rgba(0,0,0,0.9)' : undefined
+              }}
             >
               {slide.lines.map((line, i) => (
                 <div key={i}>{line}</div>
               ))}
             </div>
-            {slide.reference && <div className="screen-reference">{slide.reference}</div>}
+            {slide.reference && ref.show && (
+              <div
+                className="screen-reference"
+                style={{
+                  [ref.position]: 40,
+                  [ref.position === 'top' ? 'bottom' : 'top']: 'auto',
+                  fontFamily: `'${ref.font}', system-ui, sans-serif`,
+                  fontSize: ref.size,
+                  fontWeight: ref.bold ? 700 : 400,
+                  color: ref.color ?? undefined,
+                  textAlign: ref.align,
+                  padding: '0 140px',
+                  textShadow: textStyle.shadow ? '0 3px 10px rgba(0,0,0,0.85)' : undefined
+                }}
+              >
+                {slide.reference}
+              </div>
+            )}
           </div>
         )}
         {!compact && output.alert && output.mode !== 'black' && (

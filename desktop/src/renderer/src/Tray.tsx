@@ -13,6 +13,8 @@ import type { TrayTab } from '../../shared/state'
 import type { BibleSummary, OutputState, ScheduleItem, Slide } from '../../shared/types'
 import { MediaTab } from './MediaTab'
 import { Songs } from './Songs'
+import { Themes } from './Themes'
+import type { DisplayStyle } from '../../shared/style'
 
 const TABS: { id: TrayTab; label: string }[] = [
   { id: 'songs', label: 'Songs' },
@@ -40,10 +42,12 @@ interface Props {
   media: React.ComponentProps<typeof MediaTab>
   /** Builds what a slide looks like on the screen (theme and background), for the song editor preview. */
   songPreview: (slide: Slide) => OutputState
+  style: DisplayStyle
+  onStyle: (style: DisplayStyle) => void
   bibles: BiblePickerProps
 }
 
-export function Tray({ expanded, onToggleExpanded, tab, onTab, onAdd, onShowNow, media, bibles, songPreview }: Props): React.JSX.Element {
+export function Tray({ expanded, onToggleExpanded, tab, onTab, onAdd, onShowNow, media, bibles, songPreview, style, onStyle }: Props): React.JSX.Element {
   const bodyRef = useRef<HTMLDivElement>(null)
   // Coming back to Songs or Scriptures puts the cursor in its first box, ready to type.
   useEffect(() => {
@@ -74,7 +78,7 @@ export function Tray({ expanded, onToggleExpanded, tab, onTab, onAdd, onShowNow,
           <MediaTab {...media} />
         </div>
         <div className="tab-pane" hidden={tab !== 'themes'}>
-          <p className="empty">Themes come in a later milestone: fonts, backgrounds and church logo.</p>
+          <Themes style={style} onChange={onStyle} preview={(slide, s) => ({ ...songPreview(slide), style: s })} />
         </div>
       </div>
     </section>

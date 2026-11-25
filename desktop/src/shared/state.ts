@@ -1,3 +1,4 @@
+import { sanitizeStyle, type DisplayStyle } from './style'
 import { mediaUrl } from './media'
 import { makeSampleSchedule } from './sample'
 import {
@@ -39,6 +40,7 @@ export interface AppState {
   /** Background for every item that has no choice of its own. */
   defaultBackground: string | null
   dim: number
+  style: DisplayStyle
 }
 
 export type Action =
@@ -60,6 +62,7 @@ export type Action =
   | { type: 'setDefaultBackground'; mediaId: string | null }
   | { type: 'setItemBackground'; itemId: string; background: string | null | undefined }
   | { type: 'setDim'; dim: number }
+  | { type: 'setStyle'; style: DisplayStyle }
   | { type: 'newSchedule' }
   | { type: 'loadSchedule'; name: string; items: ScheduleItem[] }
 
@@ -70,6 +73,7 @@ export interface Persisted {
   outputTheme: Theme
   defaultBackground?: string | null
   dim?: number
+  style?: DisplayStyle
 }
 
 export const DEFAULT_SCHEDULE_NAME = 'Sunday service'
@@ -89,7 +93,8 @@ export function createInitialState(persisted?: Persisted | null): AppState {
     tab: 'scriptures',
     media: [],
     defaultBackground: persisted?.defaultBackground ?? null,
-    dim: clampDim(persisted?.dim ?? DEFAULT_DIM)
+    dim: clampDim(persisted?.dim ?? DEFAULT_DIM),
+    style: sanitizeStyle(persisted?.style)
   }
 }
 
@@ -216,6 +221,8 @@ export function reducer(state: AppState, action: Action): AppState {
           return action.background === undefined ? rest : { ...rest, background: action.background }
         })
       }
+    case 'setStyle':
+      return { ...state, style: sanitizeStyle(action.style) }
     case 'setDim':
       return { ...state, dim: clampDim(action.dim) }
     case 'setAlert': {
@@ -267,6 +274,7 @@ export function deriveOutput(state: AppState): OutputState {
     theme: state.outputTheme,
     alert: state.alert,
     background: resolveBackground(state.live ? state.live.background : state.defaultBackground, state.media),
-    dim: state.dim
+    dim: state.dim,
+    style: state.style
   }
 }

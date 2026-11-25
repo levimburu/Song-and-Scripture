@@ -1,3 +1,4 @@
+import { DEFAULT_STYLE, type DisplayStyle } from './style'
 export type Theme = 'dark' | 'light'
 
 export type SectionKind = 'verse' | 'chorus' | 'bridge' | 'scripture' | 'text'
@@ -50,6 +51,8 @@ export interface OutputState {
   background: OutputBackground | null
   /** How much to darken the background, 0 to 90 percent. */
   dim: number
+  /** Fonts, colours and positions for the text. */
+  style: DisplayStyle
 }
 
 export const DEFAULT_DIM = 0
@@ -60,7 +63,8 @@ export const DEFAULT_OUTPUT: OutputState = {
   theme: 'dark',
   alert: null,
   background: null,
-  dim: DEFAULT_DIM
+  dim: DEFAULT_DIM,
+  style: DEFAULT_STYLE
 }
 
 export interface DisplayInfo {

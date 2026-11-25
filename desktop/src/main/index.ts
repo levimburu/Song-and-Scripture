@@ -3,6 +3,7 @@ import { readFile, stat } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { IPC } from '../shared/ipc'
+import { sanitizeStyle } from '../shared/style'
 import { isMediaUrl, MEDIA_PROTOCOL } from '../shared/media'
 import { createBibleStore, type BibleStore } from './bibleStore'
 import { createMediaStore, type MediaStore } from './mediaStore'
@@ -165,9 +166,10 @@ function openOutput(): void {
 function registerIpc(): void {
   ipcMain.on(IPC.setOutput, (_event, state: unknown) => {
     if (!isOutputState(state)) return
-    lastState = state
+    const clean: OutputState = { ...state, style: sanitizeStyle((state as { style?: unknown }).style) }
+    lastState = clean
     if (outputWindow && !outputWindow.isDestroyed()) {
-      outputWindow.webContents.send(IPC.outputState, state)
+      outputWindow.webContents.send(IPC.outputState, clean)
     }
   })
 

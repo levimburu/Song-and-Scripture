@@ -28,6 +28,7 @@ import { isBibleText } from '../../shared/validate'
 import { BibleImportDialog } from './BibleImportDialog'
 import { LivePane, PreviewPane, SchedulePane } from './Panes'
 import { Tray } from './Tray'
+import { sanitizeStyle } from '../../shared/style'
 
 const STORAGE_KEY = 'sas.v1'
 
@@ -49,7 +50,8 @@ function loadPersisted(): Persisted | null {
       theme: d.theme,
       outputTheme: d.outputTheme,
       defaultBackground: typeof d.defaultBackground === 'string' ? d.defaultBackground : null,
-      dim: typeof d.bgDim === 'number' ? clampDim(d.bgDim) : undefined
+      dim: typeof d.bgDim === 'number' ? clampDim(d.bgDim) : undefined,
+      style: sanitizeStyle(d.style)
     }
   } catch {
     return null
@@ -94,13 +96,14 @@ export function App(): React.JSX.Element {
         theme: state.theme,
         outputTheme: state.outputTheme,
         defaultBackground: state.defaultBackground,
-        dim: state.dim
+        dim: state.dim,
+        style: state.style
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...data, bgDim: data.dim, dim: undefined }))
     } catch {
       /* storage unavailable: autosave is best effort */
     }
-  }, [state.scheduleName, state.items, state.theme, state.outputTheme, state.defaultBackground, state.dim])
+  }, [state.scheduleName, state.items, state.theme, state.outputTheme, state.defaultBackground, state.dim, state.style])
 
   useEffect(() => {
     void window.api.listBibles().then((list) => {
@@ -202,6 +205,7 @@ export function App(): React.JSX.Element {
           outputTheme={state.outputTheme}
           background={previewBackground}
           dim={state.dim}
+          style={state.style}
           onSelectSlide={(index) => dispatch({ type: 'selectSlide', index })}
           onGoLive={() => dispatch({ type: 'goLive' })}
         />
@@ -247,8 +251,11 @@ export function App(): React.JSX.Element {
           theme: state.outputTheme,
           alert: null,
           background: resolveBackground(state.defaultBackground, state.media),
-          dim: state.dim
+          dim: state.dim,
+          style: state.style
         })}
+        style={state.style}
+        onStyle={(style) => dispatch({ type: 'setStyle', style })}
         tab={state.tab}
         onTab={(tab) => dispatch({ type: 'setTab', tab })}
         onAdd={(it) => dispatch({ type: 'addItem', item: it })}

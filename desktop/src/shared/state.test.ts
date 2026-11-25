@@ -1,3 +1,4 @@
+import { DEFAULT_STYLE } from './style'
 import { describe, expect, it } from 'vitest'
 import { itemFromText } from './schedule'
 import {
@@ -28,7 +29,7 @@ describe('initial state', () => {
     expect(previewItem(state)?.id).toBe(state.items[0].id)
     expect(state.live).toBeNull()
     expect(state.mode).toBe('black')
-    expect(deriveOutput(state)).toEqual({ mode: 'black', slide: null, theme: 'dark', alert: null, background: null, dim: 0 })
+    expect(deriveOutput(state)).toEqual({ mode: 'black', slide: null, theme: 'dark', alert: null, background: null, dim: 0, style: DEFAULT_STYLE })
   })
 
   it('restores saved items and themes', () => {

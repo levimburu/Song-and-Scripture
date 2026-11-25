@@ -10,6 +10,7 @@ import {
 } from '@tabler/icons-react'
 import { useEffect, useRef } from 'react'
 import { DEFAULT_DIM, type ItemType, type OutputBackground, type OutputState, type ScheduleItem, type Slide, type Theme } from '../../shared/types'
+import { DEFAULT_STYLE, type DisplayStyle } from '../../shared/style'
 import { SlideView } from './SlideView'
 
 const TYPE_ICONS: Record<ItemType, typeof IconMusic> = {
@@ -21,8 +22,8 @@ const TYPE_ICONS: Record<ItemType, typeof IconMusic> = {
   video: IconVideo
 }
 
-function slideOutput(slide: Slide | null, theme: Theme, background: OutputBackground | null = null, dim = DEFAULT_DIM): OutputState {
-  return { mode: slide ? 'slide' : 'clear', slide, theme, alert: null, background, dim }
+function slideOutput(slide: Slide | null, theme: Theme, background: OutputBackground | null = null, dim = DEFAULT_DIM, style: DisplayStyle = DEFAULT_STYLE): OutputState {
+  return { mode: slide ? 'slide' : 'clear', slide, theme, alert: null, background, dim, style }
 }
 
 interface ScheduleProps {
@@ -87,11 +88,12 @@ interface PreviewProps {
   outputTheme: Theme
   background: OutputBackground | null
   dim: number
+  style: DisplayStyle
   onSelectSlide: (index: number) => void
   onGoLive: () => void
 }
 
-export function PreviewPane({ item, index, outputTheme, background, dim, onSelectSlide, onGoLive }: PreviewProps): React.JSX.Element {
+export function PreviewPane({ item, index, outputTheme, background, dim, style, onSelectSlide, onGoLive }: PreviewProps): React.JSX.Element {
   const slide = item?.slides[index] ?? null
   return (
     <section className="pane preview">
@@ -100,7 +102,7 @@ export function PreviewPane({ item, index, outputTheme, background, dim, onSelec
         <span className="muted">{item ? item.title : 'Nothing selected'}</span>
       </header>
       <div className="screen-frame">
-        <SlideView output={slideOutput(slide, outputTheme, background, dim)} />
+        <SlideView output={slideOutput(slide, outputTheme, background, dim, style)} />
       </div>
       <div className="thumbs">
         {item?.slides.map((s, i) => (
@@ -114,7 +116,7 @@ export function PreviewPane({ item, index, outputTheme, background, dim, onSelec
             }}
           >
             <div className="thumb-screen">
-              <SlideView output={slideOutput(s, outputTheme, background, dim)} compact />
+              <SlideView output={slideOutput(s, outputTheme, background, dim, style)} compact />
             </div>
             <span className="thumb-label">{s.label}</span>
           </button>

@@ -172,3 +172,6 @@ select { background: var(--bg); border: 1px solid var(--border-control); border-
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .modal-error { color: var(--live); margin: 0; }
 .modal-warn { color: var(--warn); }
+
+.scripture-actions { display: inline-flex; gap: 8px; }
+.btn.small.go-live { height: 28px; padding: 0 12px; }

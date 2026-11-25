@@ -46,6 +46,7 @@ export type Action =
   | { type: 'selectSlide'; index: number }
   | { type: 'goLive' }
   | { type: 'toggleLive' }
+  | { type: 'showNow'; item: ScheduleItem }
   | { type: 'liveGoto'; index: number }
   | { type: 'liveStep'; delta: number }
   | { type: 'setMode'; mode: OutputMode }
@@ -151,6 +152,21 @@ export function reducer(state: AppState, action: Action): AppState {
           slides: item.slides,
           index: clamp(state.previewIndex, item.slides.length),
           background: effectiveBackground(item, state.defaultBackground)
+        }
+      }
+    }
+    case 'showNow': {
+      // Puts something on the screen straight away without adding it to the schedule.
+      if (action.item.slides.length === 0) return state
+      return {
+        ...state,
+        mode: 'slide',
+        live: {
+          itemId: action.item.id,
+          title: action.item.title,
+          slides: action.item.slides,
+          index: 0,
+          background: effectiveBackground(action.item, state.defaultBackground)
         }
       }
     }

@@ -239,6 +239,11 @@ export function App(): React.JSX.Element {
         tab={state.tab}
         onTab={(tab) => dispatch({ type: 'setTab', tab })}
         onAdd={(it) => dispatch({ type: 'addItem', item: it })}
+        onShowNow={(it) => {
+          dispatch({ type: 'showNow', item: it })
+          // Let go of the text box or button so the arrow keys and space step through the verses.
+          if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+        }}
         media={{
           media: state.media,
           itemTitle: item?.title ?? null,

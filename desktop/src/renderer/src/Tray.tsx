@@ -1,4 +1,4 @@
-import { IconPlus, IconSearch } from '@tabler/icons-react'
+import { IconPlayerPlayFilled, IconPlus, IconSearch } from '@tabler/icons-react'
 import { useMemo, useState } from 'react'
 import { formatReference, lookupPassage, parseReference } from '../../shared/bible'
 import type { BibleSummary } from '../../shared/types'
@@ -19,6 +19,7 @@ interface Props {
   tab: TrayTab
   onTab: (tab: TrayTab) => void
   onAdd: (item: ScheduleItem) => void
+  onShowNow: (item: ScheduleItem) => void
   media: React.ComponentProps<typeof MediaTab>
   bibles: BiblePickerProps
 }
@@ -31,7 +32,7 @@ export interface BiblePickerProps {
   onRemoveBible: (version: string) => void
 }
 
-export function Tray({ tab, onTab, onAdd, media, bibles }: Props): React.JSX.Element {
+export function Tray({ tab, onTab, onAdd, onShowNow, media, bibles }: Props): React.JSX.Element {
   return (
     <section className="tray">
       <nav className="tray-tabs" role="tablist">
@@ -43,7 +44,7 @@ export function Tray({ tab, onTab, onAdd, media, bibles }: Props): React.JSX.Ele
       </nav>
       <div className="tray-body">
         {tab === 'songs' && <Songs onAdd={onAdd} />}
-        {tab === 'scriptures' && <Scriptures onAdd={onAdd} {...bibles} />}
+        {tab === 'scriptures' && <Scriptures onAdd={onAdd} onShowNow={onShowNow} {...bibles} />}
         {tab === 'media' && <MediaTab {...media} />}
         {tab === 'themes' && <p className="empty">Themes come in a later milestone: fonts, backgrounds and church logo.</p>}
       </div>
@@ -78,7 +79,7 @@ function Songs({ onAdd }: { onAdd: (item: ScheduleItem) => void }): React.JSX.El
   )
 }
 
-function Scriptures({ onAdd, versions, version, onVersion, onAddBible, onRemoveBible }: { onAdd: (item: ScheduleItem) => void } & BiblePickerProps): React.JSX.Element {
+function Scriptures({ onAdd, onShowNow, versions, version, onVersion, onAddBible, onRemoveBible }: { onAdd: (item: ScheduleItem) => void; onShowNow: (item: ScheduleItem) => void } & BiblePickerProps): React.JSX.Element {
   const [text, setText] = useState('Romans 8:35-39')
   const ref = parseReference(text)
   const current = versions.find((v) => v.version === version)
@@ -109,13 +110,26 @@ function Scriptures({ onAdd, versions, version, onVersion, onAddBible, onRemoveB
       </div>
       <label className="search">
         <IconSearch size={16} />
-        <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Book chapter:verse" aria-label="Scripture reference" />
+        <input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && result) onShowNow(itemFromScripture(result))
+          }}
+          placeholder="Book chapter:verse, then Enter to show it now"
+          aria-label="Scripture reference"
+        />
       </label>
       <div className="scripture-result">
         <span className={result ? '' : 'muted'}>{note}</span>
-        <button className="btn small" disabled={!result} onClick={() => result && onAdd(itemFromScripture(result))}>
-          <IconPlus size={14} /> Add to schedule
-        </button>
+        <span className="scripture-actions">
+          <button className="btn small go-live" disabled={!result} onClick={() => result && onShowNow(itemFromScripture(result))}>
+            <IconPlayerPlayFilled size={14} /> Show now
+          </button>
+          <button className="btn small" disabled={!result} onClick={() => result && onAdd(itemFromScripture(result))}>
+            <IconPlus size={14} /> Add to schedule
+          </button>
+        </span>
       </div>
     </div>
   )

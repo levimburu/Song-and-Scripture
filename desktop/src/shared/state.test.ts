@@ -116,6 +116,41 @@ describe('going live', () => {
   })
 })
 
+describe('showNow', () => {
+  it('puts an item on the screen without adding it to the schedule', () => {
+    const state = songState()
+    const item = itemFromText('announcement', 'John 3:16', ['For God so loved the world'])
+    const next = reducer(state, { type: 'showNow', item })
+    expect(next.items).toBe(state.items)
+    expect(next.previewItemId).toBe(state.previewItemId)
+    expect(next.live?.title).toBe('John 3:16')
+    expect(deriveOutput(next).mode).toBe('slide')
+    expect(deriveOutput(next).slide?.lines).toEqual(['For God so loved the world'])
+  })
+
+  it('lets the operator step through a quick passage and keeps the schedule untouched', () => {
+    const item = { ...itemFromText('announcement', 'Psalm 23', ['one']), slides: [0, 1, 2].map((n) => ({ id: `s${n}`, kind: 'scripture' as const, label: `${n}`, lines: [`verse ${n}`] })) }
+    let state = reducer(freshState(), { type: 'showNow', item })
+    state = reducer(state, { type: 'liveStep', delta: 1 })
+    expect(deriveOutput(state).slide?.lines).toEqual(['verse 1'])
+    expect(state.items).toHaveLength(freshState().items.length)
+  })
+
+  it('takes over from whatever was on the screen, including black', () => {
+    let state = reducer(songState(), { type: 'goLive' })
+    state = reducer(state, { type: 'setMode', mode: 'black' })
+    state = reducer(state, { type: 'showNow', item: itemFromText('announcement', 'X', ['hello']) })
+    expect(deriveOutput(state).mode).toBe('slide')
+  })
+
+  it('uses the service default background and ignores empty items', () => {
+    const base = reducer(freshState(), { type: 'setDefaultBackground', mediaId: 'm9' })
+    const item = itemFromText('announcement', 'X', ['hi'])
+    expect(reducer(base, { type: 'showNow', item }).live?.background).toBe('m9')
+    expect(reducer(base, { type: 'showNow', item: { ...item, slides: [] } })).toBe(base)
+  })
+})
+
 describe('toggleLive', () => {
   it('shows the preview, then clears it, then shows it again', () => {
     let state = songState()

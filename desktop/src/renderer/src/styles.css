@@ -256,3 +256,16 @@ select.mini { height: 28px; background: var(--bg); border: 1px solid var(--borde
   :root { --frame-h: clamp(90px, calc(var(--ws-h) - 135px), 420px); }
   .thumbs { display: none; }
 }
+
+/* Enlarged tray: covers the schedule and preview, the live pane stays visible on the right */
+.app { position: relative; }
+.tray-enlarge { margin-left: auto; margin-bottom: 3px; }
+.tray-tabs { align-items: center; }
+.app.tray-expanded .tray { position: absolute; left: 0; top: 48px; bottom: 36px; width: calc(280px + (100% - 280px) / 2); height: auto; z-index: 5; border-top: 0; border-right: 1px solid var(--border); }
+.app.tray-expanded .songs { grid-template-columns: 300px 1fr; }
+.app.tray-expanded .verse-list, .app.tray-expanded .song-list { font-size: 14px; }
+.app.tray-expanded { grid-template-rows: 48px minmax(0, 1fr) 0 36px; }
+.app.tray-expanded .songs { grid-template-columns: 220px minmax(0, 1fr); }
+.songs { grid-template-columns: 260px minmax(0, 1fr); }
+.song-head { flex-wrap: wrap; }
+.tray-body { overflow-x: hidden; }

@@ -1,4 +1,4 @@
-import { IconPlayerPlayFilled, IconPlus, IconSearch } from '@tabler/icons-react'
+import { IconArrowsMaximize, IconArrowsMinimize, IconPlayerPlayFilled, IconPlus, IconSearch } from '@tabler/icons-react'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   chapterCountFor,
@@ -30,6 +30,8 @@ export interface BiblePickerProps {
 }
 
 interface Props {
+  expanded: boolean
+  onToggleExpanded: () => void
   tab: TrayTab
   onTab: (tab: TrayTab) => void
   onAdd: (item: ScheduleItem) => void
@@ -41,7 +43,7 @@ interface Props {
   bibles: BiblePickerProps
 }
 
-export function Tray({ tab, onTab, onAdd, onShowNow, media, bibles, songPreview }: Props): React.JSX.Element {
+export function Tray({ expanded, onToggleExpanded, tab, onTab, onAdd, onShowNow, media, bibles, songPreview }: Props): React.JSX.Element {
   return (
     <section className="tray">
       <nav className="tray-tabs" role="tablist">
@@ -50,6 +52,10 @@ export function Tray({ tab, onTab, onAdd, onShowNow, media, bibles, songPreview 
             {t.label}
           </button>
         ))}
+        <button className="btn small tray-enlarge" onClick={onToggleExpanded} aria-pressed={expanded} title={expanded ? 'Shrink (Esc)' : 'Enlarge'}>
+          {expanded ? <IconArrowsMinimize size={14} /> : <IconArrowsMaximize size={14} />}
+          {expanded ? 'Shrink' : 'Enlarge'}
+        </button>
       </nav>
       <div className="tray-body">
         {tab === 'songs' && <Songs onAdd={onAdd} onShowNow={onShowNow} preview={songPreview} />}

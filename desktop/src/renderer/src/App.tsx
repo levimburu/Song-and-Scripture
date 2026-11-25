@@ -67,6 +67,7 @@ export function App(): React.JSX.Element {
   const [alertDraft, setAlertDraft] = useState('')
   const [versions, setVersions] = useState(installedVersions)
   const [bibleVersion, setBibleVersion] = useState('KJV')
+  const [trayExpanded, setTrayExpanded] = useState(false)
   const [bibleFile, setBibleFile] = useState<BibleFileContents | null>(null)
 
   const output = useMemo(() => deriveOutput(state), [state])
@@ -120,6 +121,8 @@ export function App(): React.JSX.Element {
   useEffect(() => {
     const onKey = (event: KeyboardEvent): void => {
       const key = event.key.toLowerCase()
+      // Escape shrinks the enlarged tray (unless a dialog is open and wants the key).
+      if (key === 'escape' && !document.querySelector('.modal-backdrop')) setTrayExpanded(false)
       if (key === 'c' && event.ctrlKey && !event.metaKey && !event.altKey) {
         if (isTyping(event.target) || (window.getSelection()?.toString() ?? '') !== '') return
         dispatch({ type: 'toggleLive' })
@@ -153,7 +156,7 @@ export function App(): React.JSX.Element {
   else projector = { cls: 'amber', text: 'No second screen, output closed' }
 
   return (
-    <div className="app">
+    <div className={`app${trayExpanded ? ' tray-expanded' : ''}`}>
       <header className="toolbar">
         <div className="brand">Song and Scripture</div>
         <div className="toolbar-actions">
@@ -224,6 +227,8 @@ export function App(): React.JSX.Element {
       )}
 
       <Tray
+        expanded={trayExpanded}
+        onToggleExpanded={() => setTrayExpanded((v) => !v)}
         bibles={{
           versions,
           version: bibleVersion,

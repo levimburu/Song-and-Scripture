@@ -9,7 +9,17 @@ import {
   IconSun
 } from '@tabler/icons-react'
 import { useEffect, useMemo, useReducer, useState } from 'react'
-import { createInitialState, deriveOutput, previewItem, reducer, type Persisted } from '../../shared/state'
+import {
+  backgroundMissing,
+  clampDim,
+  createInitialState,
+  deriveOutput,
+  effectiveBackground,
+  previewItem,
+  reducer,
+  resolveBackground,
+  type Persisted
+} from '../../shared/state'
 import { isScheduleItems } from '../../shared/validate'
 import type { DisplayInfo, OutputMode, Theme } from '../../shared/types'
 import { LivePane, PreviewPane, SchedulePane } from './Panes'
@@ -29,7 +39,14 @@ function loadPersisted(): Persisted | null {
     if (typeof data !== 'object' || data === null) return null
     const d = data as Record<string, unknown>
     if (typeof d.scheduleName !== 'string' || !isScheduleItems(d.items) || !isTheme(d.theme) || !isTheme(d.outputTheme)) return null
-    return { scheduleName: d.scheduleName, items: d.items, theme: d.theme, outputTheme: d.outputTheme }
+    return {
+      scheduleName: d.scheduleName,
+      items: d.items,
+      theme: d.theme,
+      outputTheme: d.outputTheme,
+      defaultBackground: typeof d.defaultBackground === 'string' ? d.defaultBackground : null,
+      dim: typeof d.dim === 'number' ? clampDim(d.dim) : undefined
+    }
   } catch {
     return null
   }
@@ -47,6 +64,11 @@ export function App(): React.JSX.Element {
 
   const output = useMemo(() => deriveOutput(state), [state])
   const item = previewItem(state)
+  const previewBackground = resolveBackground(effectiveBackground(item, state.defaultBackground), state.media)
+  const missingIds = useMemo(
+    () => new Set(state.items.filter((it) => backgroundMissing(it, state)).map((it) => it.id)),
+    [state.items, state.media, state.defaultBackground]
+  )
 
   useEffect(() => {
     document.documentElement.dataset.theme = state.theme
@@ -58,12 +80,23 @@ export function App(): React.JSX.Element {
 
   useEffect(() => {
     try {
-      const data: Persisted = { scheduleName: state.scheduleName, items: state.items, theme: state.theme, outputTheme: state.outputTheme }
+      const data: Persisted = {
+        scheduleName: state.scheduleName,
+        items: state.items,
+        theme: state.theme,
+        outputTheme: state.outputTheme,
+        defaultBackground: state.defaultBackground,
+        dim: state.dim
+      }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
     } catch {
       /* storage unavailable: autosave is best effort */
     }
-  }, [state.scheduleName, state.items, state.theme, state.outputTheme])
+  }, [state.scheduleName, state.items, state.theme, state.outputTheme, state.defaultBackground, state.dim])
+
+  useEffect(() => {
+    void window.api.listMedia().then((media) => dispatch({ type: 'setMedia', media }))
+  }, [])
 
   useEffect(() => {
     void window.api.getDisplayInfo().then(setDisplay)
@@ -142,6 +175,7 @@ export function App(): React.JSX.Element {
           items={state.items}
           selectedId={state.previewItemId}
           liveId={state.live?.itemId ?? null}
+          backgroundMissingIds={missingIds}
           onSelect={(id) => dispatch({ type: 'selectItem', id })}
           onRemove={(id) => dispatch({ type: 'removeItem', id })}
         />
@@ -149,6 +183,8 @@ export function App(): React.JSX.Element {
           item={item}
           index={state.previewIndex}
           outputTheme={state.outputTheme}
+          background={previewBackground}
+          dim={state.dim}
           onSelectSlide={(index) => dispatch({ type: 'selectSlide', index })}
           onGoLive={() => dispatch({ type: 'goLive' })}
         />
@@ -161,7 +197,23 @@ export function App(): React.JSX.Element {
         />
       </main>
 
-      <Tray tab={state.tab} onTab={(tab) => dispatch({ type: 'setTab', tab })} onAdd={(it) => dispatch({ type: 'addItem', item: it })} />
+      <Tray
+        tab={state.tab}
+        onTab={(tab) => dispatch({ type: 'setTab', tab })}
+        onAdd={(it) => dispatch({ type: 'addItem', item: it })}
+        media={{
+          media: state.media,
+          itemTitle: item?.title ?? null,
+          itemBackground: item?.background,
+          defaultBackground: state.defaultBackground,
+          dim: state.dim,
+          onAdd: () => void window.api.addMedia().then((media) => dispatch({ type: 'setMedia', media })),
+          onRemove: (id) => void window.api.removeMedia(id).then((media) => dispatch({ type: 'setMedia', media })),
+          onSetItem: (background) => item && dispatch({ type: 'setItemBackground', itemId: item.id, background }),
+          onSetDefault: (mediaId) => dispatch({ type: 'setDefaultBackground', mediaId }),
+          onDim: (dim) => dispatch({ type: 'setDim', dim })
+        }}
+      />
 
       <footer className="statusbar">
         <span className={`status ${projector.cls}`}>

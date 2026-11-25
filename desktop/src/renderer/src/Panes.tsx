@@ -8,7 +8,7 @@ import {
   IconTrash,
   IconVideo
 } from '@tabler/icons-react'
-import type { ItemType, OutputState, ScheduleItem, Slide, Theme } from '../../shared/types'
+import { DEFAULT_DIM, type ItemType, type OutputBackground, type OutputState, type ScheduleItem, type Slide, type Theme } from '../../shared/types'
 import { SlideView } from './SlideView'
 
 const TYPE_ICONS: Record<ItemType, typeof IconMusic> = {
@@ -20,8 +20,8 @@ const TYPE_ICONS: Record<ItemType, typeof IconMusic> = {
   video: IconVideo
 }
 
-function slideOutput(slide: Slide | null, theme: Theme): OutputState {
-  return { mode: slide ? 'slide' : 'clear', slide, theme, alert: null }
+function slideOutput(slide: Slide | null, theme: Theme, background: OutputBackground | null = null, dim = DEFAULT_DIM): OutputState {
+  return { mode: slide ? 'slide' : 'clear', slide, theme, alert: null, background, dim }
 }
 
 interface ScheduleProps {
@@ -29,11 +29,12 @@ interface ScheduleProps {
   items: ScheduleItem[]
   selectedId: string | null
   liveId: string | null
+  backgroundMissingIds: ReadonlySet<string>
   onSelect: (id: string) => void
   onRemove: (id: string) => void
 }
 
-export function SchedulePane({ name, items, selectedId, liveId, onSelect, onRemove }: ScheduleProps): React.JSX.Element {
+export function SchedulePane({ name, items, selectedId, liveId, backgroundMissingIds, onSelect, onRemove }: ScheduleProps): React.JSX.Element {
   return (
     <section className="pane schedule">
       <header className="pane-head">
@@ -55,8 +56,8 @@ export function SchedulePane({ name, items, selectedId, liveId, onSelect, onRemo
               <span className="row-num">{i + 1}</span>
               <Icon size={18} className={`row-icon type-${item.type}`} />
               <span className="row-title">{item.title}</span>
-              {item.status === 'missing' && (
-                <span className="row-warn" title="Media file missing">
+              {(item.status === 'missing' || backgroundMissingIds.has(item.id)) && (
+                <span className="row-warn" title={item.status === 'missing' ? 'Media file missing' : 'Background file missing'}>
                   <IconAlertTriangle size={16} />
                 </span>
               )}
@@ -83,11 +84,13 @@ interface PreviewProps {
   item: ScheduleItem | null
   index: number
   outputTheme: Theme
+  background: OutputBackground | null
+  dim: number
   onSelectSlide: (index: number) => void
   onGoLive: () => void
 }
 
-export function PreviewPane({ item, index, outputTheme, onSelectSlide, onGoLive }: PreviewProps): React.JSX.Element {
+export function PreviewPane({ item, index, outputTheme, background, dim, onSelectSlide, onGoLive }: PreviewProps): React.JSX.Element {
   const slide = item?.slides[index] ?? null
   return (
     <section className="pane preview">
@@ -96,7 +99,7 @@ export function PreviewPane({ item, index, outputTheme, onSelectSlide, onGoLive 
         <span className="muted">{item ? item.title : 'Nothing selected'}</span>
       </header>
       <div className="screen-frame">
-        <SlideView output={slideOutput(slide, outputTheme)} />
+        <SlideView output={slideOutput(slide, outputTheme, background, dim)} />
       </div>
       <div className="thumbs">
         {item?.slides.map((s, i) => (
@@ -110,7 +113,7 @@ export function PreviewPane({ item, index, outputTheme, onSelectSlide, onGoLive 
             }}
           >
             <div className="thumb-screen">
-              <SlideView output={slideOutput(s, outputTheme)} compact />
+              <SlideView output={slideOutput(s, outputTheme, background, dim)} compact />
             </div>
             <span className="thumb-label">{s.label}</span>
           </button>
@@ -137,7 +140,7 @@ export function LivePane({ title, slides, index, output, onGoto }: LiveProps): R
         <span className={`live-badge${isLive ? ' on' : ''}`}>{isLive ? 'LIVE' : output.mode.toUpperCase()}</span>
       </header>
       <div className="screen-frame live-frame">
-        <SlideView output={output} />
+        <SlideView output={output} animate />
       </div>
       <div className="live-title">{title ?? 'Nothing live'}</div>
       <ul className="live-sections">

@@ -1,8 +1,17 @@
-import { app, BrowserWindow, ipcMain, screen } from 'electron'
-import { join } from 'node:path'
+import { app, BrowserWindow, dialog, ipcMain, net, protocol, screen } from 'electron'
+import { basename, join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { IPC } from '../shared/ipc'
+import { isMediaUrl, MEDIA_PROTOCOL } from '../shared/media'
+import { createMediaStore, type MediaStore } from './mediaStore'
 import { DEFAULT_OUTPUT, type DisplayInfo, type OutputState } from '../shared/types'
 
+// Must run before the app is ready so videos can stream and seek from local files.
+protocol.registerSchemesAsPrivileged([
+  { scheme: MEDIA_PROTOCOL, privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true, bypassCSP: false } }
+])
+
+let mediaStore: MediaStore
 let operatorWindow: BrowserWindow | null = null
 let outputWindow: BrowserWindow | null = null
 let outputOnSecondary = false
@@ -17,6 +26,12 @@ function isOutputState(value: unknown): value is OutputState {
   if (typeof state.mode !== 'string' || !MODES.has(state.mode)) return false
   if (typeof state.theme !== 'string' || !THEMES.has(state.theme)) return false
   if (state.alert !== null && (typeof state.alert !== 'string' || state.alert.length > 500)) return false
+  if (typeof state.dim !== 'number' || state.dim < 0 || state.dim > 90) return false
+  if (state.background !== null) {
+    if (typeof state.background !== 'object') return false
+    const bg = state.background as Record<string, unknown>
+    if ((bg.kind !== 'image' && bg.kind !== 'video') || !isMediaUrl(bg.url)) return false
+  }
   if (state.slide !== null) {
     if (typeof state.slide !== 'object') return false
     const slide = state.slide as Record<string, unknown>
@@ -147,6 +162,23 @@ function registerIpc(): void {
     event.sender.send(IPC.outputState, lastState)
   })
 
+  ipcMain.handle(IPC.listMedia, () => mediaStore.list())
+
+  ipcMain.handle(IPC.addMedia, async () => {
+    const options: Electron.OpenDialogOptions = {
+      title: 'Add photos and videos',
+      properties: ['openFile', 'multiSelections'],
+      filters: [{ name: 'Photos and videos', extensions: ['jpg', 'jpeg', 'png', 'webp', 'mp4', 'webm', 'm4v'] }]
+    }
+    const result = operatorWindow ? await dialog.showOpenDialog(operatorWindow, options) : await dialog.showOpenDialog(options)
+    if (result.canceled) return mediaStore.list()
+    return mediaStore.add(result.filePaths)
+  })
+
+  ipcMain.handle(IPC.removeMedia, (_event, id: unknown) => {
+    return typeof id === 'string' ? mediaStore.remove(id) : mediaStore.list()
+  })
+
   ipcMain.handle(IPC.getDisplayInfo, () => displayInfo())
 
   ipcMain.handle(IPC.toggleOutput, () => {
@@ -169,7 +201,18 @@ function registerScreenEvents(): void {
   })
 }
 
+function registerMediaProtocol(): void {
+  protocol.handle(MEDIA_PROTOCOL, (request) => {
+    // Only files inside our own media folder are served; basename blocks ../ tricks.
+    const name = basename(decodeURIComponent(new URL(request.url).pathname))
+    const file = pathToFileURL(join(mediaStore.dir, name)).toString()
+    return net.fetch(file, { headers: request.headers, bypassCustomProtocolHandlers: true })
+  })
+}
+
 void app.whenReady().then(() => {
+  mediaStore = createMediaStore(join(app.getPath('userData'), 'media'))
+  registerMediaProtocol()
   registerIpc()
   registerScreenEvents()
   createOperatorWindow()

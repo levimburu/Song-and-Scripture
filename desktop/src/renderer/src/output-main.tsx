@@ -15,7 +15,7 @@ function OutputApp(): React.JSX.Element {
 
   return (
     <div className="output-root">
-      <SlideView output={state} />
+      <SlideView output={state} animate />
     </div>
   )
 }

@@ -21,7 +21,7 @@ body { background: var(--bg); color: var(--text); font: 14px/1.4 'Segoe UI', sys
 button, input { font: inherit; color: inherit; }
 .muted { color: var(--text-2); }
 
-.app { display: grid; grid-template-rows: 56px 1fr 210px 40px; height: 100%; }
+.app { display: grid; grid-template-rows: 56px 1fr 260px 40px; height: 100%; }
 
 /* Toolbar */
 .toolbar { display: flex; align-items: center; justify-content: space-between; padding: 0 16px; background: var(--panel); border-bottom: 1px solid var(--border); }
@@ -128,3 +128,30 @@ button, input { font: inherit; color: inherit; }
 .screen-logo { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 110px; font-weight: 700; letter-spacing: 0.02em; }
 .screen-alert { position: absolute; left: 0; right: 0; bottom: 0; padding: 26px 60px; background: #f5a524; color: #0a0a0a; font-size: 64px; font-weight: 700; text-align: center; }
 .output-root { position: fixed; inset: 0; background: #000; }
+
+/* Backgrounds */
+.screen-bg { position: absolute; inset: 0; }
+.screen-bg img, .screen-bg video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.screen-dim { position: absolute; inset: 0; background: #000; }
+.has-bg { color: #fff; --ref: #e5e5e5; }
+.has-bg .screen-text { text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6); }
+
+/* Media tab */
+.media-top { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; }
+.media-top label { display: inline-flex; align-items: center; gap: 8px; color: var(--text-2); }
+.media-top input[type='range'] { width: 140px; accent-color: var(--blue); }
+.media-status { display: grid; gap: 4px; margin-bottom: 10px; color: var(--text-2); }
+.media-status b { color: var(--text); font-weight: 600; }
+.media-status .btn { margin-left: 8px; }
+.media-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+.media-card { width: 196px; background: var(--bg); border: 1px solid var(--border-control); border-radius: 6px; overflow: hidden; }
+.media-card.used-item { border-color: var(--blue); border-width: 2px; }
+.media-thumb { position: relative; aspect-ratio: 16 / 9; background: #000; }
+.media-thumb img, .media-thumb video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.media-tag { position: absolute; top: 4px; left: 4px; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; background: var(--blue); color: #fff; }
+.media-tag.kind { left: auto; right: 4px; background: rgba(0, 0, 0, 0.7); }
+.media-meta { padding: 5px 8px 0; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.media-size { padding: 0 8px; font-size: 11px; color: var(--text-2); }
+.media-size.warn { color: var(--warn); }
+.media-actions { display: flex; gap: 4px; padding: 6px 8px 8px; }
+.media-actions .btn { flex: 1; padding: 0 4px; justify-content: center; white-space: nowrap; }

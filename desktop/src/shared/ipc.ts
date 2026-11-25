@@ -4,5 +4,8 @@ export const IPC = {
   requestOutputState: 'output:request',
   getDisplayInfo: 'display:get',
   displayInfo: 'display:info',
-  toggleOutput: 'output:toggle'
+  toggleOutput: 'output:toggle',
+  listMedia: 'media:list',
+  addMedia: 'media:add',
+  removeMedia: 'media:remove'
 } as const

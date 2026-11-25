@@ -44,7 +44,8 @@ export function isScheduleItem(value: unknown): value is ScheduleItem {
     typeof value.status === 'string' &&
     ITEM_STATUSES.has(value.status) &&
     Array.isArray(value.slides) &&
-    value.slides.every(isSlide)
+    value.slides.every(isSlide) &&
+    (value.background === undefined || value.background === null || typeof value.background === 'string')
   )
 }
 

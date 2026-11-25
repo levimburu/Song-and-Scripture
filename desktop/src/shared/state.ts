@@ -1,5 +1,15 @@
+import { mediaUrl } from './media'
 import { makeSampleSchedule } from './sample'
-import type { OutputMode, OutputState, ScheduleItem, Slide, Theme } from './types'
+import {
+  DEFAULT_DIM,
+  type MediaFile,
+  type OutputBackground,
+  type OutputMode,
+  type OutputState,
+  type ScheduleItem,
+  type Slide,
+  type Theme
+} from './types'
 
 export type TrayTab = 'songs' | 'scriptures' | 'media' | 'themes'
 
@@ -10,6 +20,8 @@ export interface LiveSelection {
   title: string
   slides: Slide[]
   index: number
+  /** Resolved when the item went live: a media id or null for none. */
+  background: string | null
 }
 
 export interface AppState {
@@ -23,6 +35,10 @@ export interface AppState {
   outputTheme: Theme
   alert: string | null
   tab: TrayTab
+  media: MediaFile[]
+  /** Background for every item that has no choice of its own. */
+  defaultBackground: string | null
+  dim: number
 }
 
 export type Action =
@@ -39,6 +55,10 @@ export type Action =
   | { type: 'setTab'; tab: TrayTab }
   | { type: 'addItem'; item: ScheduleItem }
   | { type: 'removeItem'; id: string }
+  | { type: 'setMedia'; media: MediaFile[] }
+  | { type: 'setDefaultBackground'; mediaId: string | null }
+  | { type: 'setItemBackground'; itemId: string; background: string | null | undefined }
+  | { type: 'setDim'; dim: number }
   | { type: 'newSchedule' }
   | { type: 'loadSchedule'; name: string; items: ScheduleItem[] }
 
@@ -47,6 +67,8 @@ export interface Persisted {
   items: ScheduleItem[]
   theme: Theme
   outputTheme: Theme
+  defaultBackground?: string | null
+  dim?: number
 }
 
 export const DEFAULT_SCHEDULE_NAME = 'Sunday service'
@@ -63,8 +85,33 @@ export function createInitialState(persisted?: Persisted | null): AppState {
     theme: persisted?.theme ?? 'dark',
     outputTheme: persisted?.outputTheme ?? 'dark',
     alert: null,
-    tab: 'scriptures'
+    tab: 'scriptures',
+    media: [],
+    defaultBackground: persisted?.defaultBackground ?? null,
+    dim: clampDim(persisted?.dim ?? DEFAULT_DIM)
   }
+}
+
+export function clampDim(value: number): number {
+  if (!Number.isFinite(value)) return DEFAULT_DIM
+  return Math.min(Math.max(Math.round(value), 0), 90)
+}
+
+/** The media id an item will show: its own choice, else the service default. */
+export function effectiveBackground(item: ScheduleItem | null, defaultBackground: string | null): string | null {
+  if (!item) return defaultBackground
+  return item.background !== undefined ? item.background : defaultBackground
+}
+
+export function resolveBackground(mediaId: string | null, media: MediaFile[]): OutputBackground | null {
+  if (mediaId === null) return null
+  const file = media.find((m) => m.id === mediaId)
+  return file ? { kind: file.kind, url: mediaUrl(file.file) } : null
+}
+
+export function backgroundMissing(item: ScheduleItem, state: Pick<AppState, 'media' | 'defaultBackground'>): boolean {
+  const id = effectiveBackground(item, state.defaultBackground)
+  return id !== null && !state.media.some((m) => m.id === id)
 }
 
 function clamp(value: number, length: number): number {
@@ -102,7 +149,8 @@ export function reducer(state: AppState, action: Action): AppState {
           itemId: item.id,
           title: item.title,
           slides: item.slides,
-          index: clamp(state.previewIndex, item.slides.length)
+          index: clamp(state.previewIndex, item.slides.length),
+          background: effectiveBackground(item, state.defaultBackground)
         }
       }
     }
@@ -139,6 +187,21 @@ export function reducer(state: AppState, action: Action): AppState {
       return { ...state, theme: action.theme }
     case 'setOutputTheme':
       return { ...state, outputTheme: action.theme }
+    case 'setMedia':
+      return { ...state, media: action.media }
+    case 'setDefaultBackground':
+      return { ...state, defaultBackground: action.mediaId }
+    case 'setItemBackground':
+      return {
+        ...state,
+        items: state.items.map((item) => {
+          if (item.id !== action.itemId) return item
+          const { background: _old, ...rest } = item
+          return action.background === undefined ? rest : { ...rest, background: action.background }
+        })
+      }
+    case 'setDim':
+      return { ...state, dim: clampDim(action.dim) }
     case 'setAlert': {
       const text = action.text?.trim() ?? ''
       return { ...state, alert: text === '' ? null : text.slice(0, 200) }
@@ -182,5 +245,12 @@ export function reducer(state: AppState, action: Action): AppState {
 export function deriveOutput(state: AppState): OutputState {
   const slide = state.live ? (state.live.slides[state.live.index] ?? null) : null
   const mode: OutputMode = state.mode === 'slide' && slide === null ? 'clear' : state.mode
-  return { mode, slide, theme: state.outputTheme, alert: state.alert }
+  return {
+    mode,
+    slide,
+    theme: state.outputTheme,
+    alert: state.alert,
+    background: resolveBackground(state.live ? state.live.background : state.defaultBackground, state.media),
+    dim: state.dim
+  }
 }

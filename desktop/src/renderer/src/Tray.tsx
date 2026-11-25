@@ -5,6 +5,7 @@ import { SAMPLE_SONGS } from '../../shared/sample'
 import { itemFromScripture, itemFromSong } from '../../shared/schedule'
 import type { ScheduleItem } from '../../shared/types'
 import type { TrayTab } from '../../shared/state'
+import { MediaTab } from './MediaTab'
 
 const TABS: { id: TrayTab; label: string }[] = [
   { id: 'songs', label: 'Songs' },
@@ -17,9 +18,10 @@ interface Props {
   tab: TrayTab
   onTab: (tab: TrayTab) => void
   onAdd: (item: ScheduleItem) => void
+  media: React.ComponentProps<typeof MediaTab>
 }
 
-export function Tray({ tab, onTab, onAdd }: Props): React.JSX.Element {
+export function Tray({ tab, onTab, onAdd, media }: Props): React.JSX.Element {
   return (
     <section className="tray">
       <nav className="tray-tabs" role="tablist">
@@ -32,7 +34,7 @@ export function Tray({ tab, onTab, onAdd }: Props): React.JSX.Element {
       <div className="tray-body">
         {tab === 'songs' && <Songs onAdd={onAdd} />}
         {tab === 'scriptures' && <Scriptures onAdd={onAdd} />}
-        {tab === 'media' && <p className="empty">Media library comes in a later milestone: videos, images and backgrounds.</p>}
+        {tab === 'media' && <MediaTab {...media} />}
         {tab === 'themes' && <p className="empty">Themes come in a later milestone: fonts, backgrounds and church logo.</p>}
       </div>
     </section>

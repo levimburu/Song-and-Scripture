@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { itemFromText } from './schedule'
-import { createInitialState, deriveOutput, previewItem, reducer, type AppState } from './state'
+import {
+  backgroundMissing,
+  clampDim,
+  createInitialState,
+  deriveOutput,
+  effectiveBackground,
+  previewItem,
+  reducer,
+  type AppState
+} from './state'
+import type { MediaFile } from './types'
 
 function freshState(): AppState {
   return createInitialState()
@@ -18,7 +28,7 @@ describe('initial state', () => {
     expect(previewItem(state)?.id).toBe(state.items[0].id)
     expect(state.live).toBeNull()
     expect(state.mode).toBe('black')
-    expect(deriveOutput(state)).toEqual({ mode: 'black', slide: null, theme: 'dark', alert: null })
+    expect(deriveOutput(state)).toEqual({ mode: 'black', slide: null, theme: 'dark', alert: null, background: null, dim: 40 })
   })
 
   it('restores saved items and themes', () => {
@@ -211,5 +221,60 @@ describe('schedule editing', () => {
     expect(state.scheduleName).toBe('Midweek')
     expect(state.previewItemId).toBe(items[0].id)
     expect(deriveOutput(state)).toEqual(before)
+  })
+})
+
+const PHOTO: MediaFile = { id: 'm1', name: 'Sunrise.jpg', kind: 'image', file: 'm1.jpg', size: 10 }
+const CLIP: MediaFile = { id: 'm2', name: 'Loop.mp4', kind: 'video', file: 'm2.mp4', size: 10 }
+
+describe('backgrounds', () => {
+  function withMedia(): AppState {
+    return reducer(songState(), { type: 'setMedia', media: [PHOTO, CLIP] })
+  }
+
+  it('shows nothing by default', () => {
+    const state = reducer(withMedia(), { type: 'goLive' })
+    expect(deriveOutput(state).background).toBeNull()
+  })
+
+  it('uses the service default for items without their own choice', () => {
+    let state = reducer(withMedia(), { type: 'setDefaultBackground', mediaId: 'm1' })
+    state = reducer(state, { type: 'goLive' })
+    expect(deriveOutput(state).background).toEqual({ kind: 'image', url: 'sas-media://local/m1.jpg' })
+  })
+
+  it('lets an item override the default with a video or with none', () => {
+    let state = reducer(withMedia(), { type: 'setDefaultBackground', mediaId: 'm1' })
+    const id = state.previewItemId!
+    state = reducer(state, { type: 'setItemBackground', itemId: id, background: 'm2' })
+    expect(deriveOutput(reducer(state, { type: 'goLive' })).background?.kind).toBe('video')
+    state = reducer(state, { type: 'setItemBackground', itemId: id, background: null })
+    expect(deriveOutput(reducer(state, { type: 'goLive' })).background).toBeNull()
+    state = reducer(state, { type: 'setItemBackground', itemId: id, background: undefined })
+    expect(effectiveBackground(previewItem(state), 'm1')).toBe('m1')
+    expect('background' in previewItem(state)!).toBe(false)
+  })
+
+  it('copies the background when going live so later edits do not change the screen', () => {
+    let state = reducer(withMedia(), { type: 'goLive' })
+    state = reducer(state, { type: 'setItemBackground', itemId: state.previewItemId!, background: 'm1' })
+    expect(deriveOutput(state).background).toBeNull()
+    state = reducer(state, { type: 'goLive' })
+    expect(deriveOutput(state).background?.kind).toBe('image')
+  })
+
+  it('shows plain black instead of a broken picture when the file is gone', () => {
+    let state = withMedia()
+    state = reducer(state, { type: 'setItemBackground', itemId: state.previewItemId!, background: 'm1' })
+    state = reducer(state, { type: 'setMedia', media: [CLIP] })
+    expect(backgroundMissing(previewItem(state)!, state)).toBe(true)
+    expect(deriveOutput(reducer(state, { type: 'goLive' })).background).toBeNull()
+  })
+
+  it('keeps dim between 0 and 90', () => {
+    expect(clampDim(-5)).toBe(0)
+    expect(clampDim(150)).toBe(90)
+    expect(clampDim(Number.NaN)).toBe(40)
+    expect(reducer(freshState(), { type: 'setDim', dim: 65.4 }).dim).toBe(65)
   })
 })

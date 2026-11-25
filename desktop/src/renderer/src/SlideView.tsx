@@ -8,16 +8,19 @@ const MIN_FONT = 36
 
 interface Props {
   output: OutputState
-  /** Hide the alert banner (used for thumbnails). */
+  /** Thumbnail mode: no alert banner, no video playback. */
   compact?: boolean
+  /** Play video backgrounds. Only the live pane and the real output do this, to spare slow laptops. */
+  animate?: boolean
 }
 
 // A 1920x1080 logical canvas scaled to fit its container, so the preview,
 // live pane and real projector output all lay text out identically.
-export function SlideView({ output, compact = false }: Props): React.JSX.Element {
+export function SlideView({ output, compact = false, animate = false }: Props): React.JSX.Element {
   const hostRef = useRef<HTMLDivElement>(null)
   const textRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(1)
+  const [failedUrl, setFailedUrl] = useState<string | null>(null)
 
   useLayoutEffect(() => {
     const host = hostRef.current
@@ -50,15 +53,29 @@ export function SlideView({ output, compact = false }: Props): React.JSX.Element
     el.style.fontSize = `${low}px`
   }, [lines, isScripture])
 
+  const bg =
+    (output.mode === 'slide' || output.mode === 'clear') && output.background && output.background.url !== failedUrl
+      ? output.background
+      : null
   const palette = output.theme === 'light' ? 'screen-light' : 'screen-dark'
   const showBlack = output.mode === 'black'
 
   return (
     <div ref={hostRef} className="slide-host">
       <div
-        className={`slide-canvas ${palette}${showBlack ? ' screen-black' : ''}`}
+        className={`slide-canvas ${palette}${showBlack ? ' screen-black' : ''}${bg ? ' has-bg' : ''}`}
         style={{ transform: `translate(-50%, -50%) scale(${scale})` }}
       >
+        {bg && (
+          <div className="screen-bg">
+            {bg.kind === 'image' ? (
+              <img src={bg.url} alt="" onError={() => setFailedUrl(bg.url)} />
+            ) : compact ? null : (
+              <video src={bg.url} autoPlay={animate} loop muted playsInline preload="metadata" onError={() => setFailedUrl(bg.url)} />
+            )}
+            <div className="screen-dim" style={{ opacity: output.dim / 100 }} />
+          </div>
+        )}
         {output.mode === 'logo' && <div className="screen-logo">Song and Scripture</div>}
         {slide && (
           <div className="screen-content">

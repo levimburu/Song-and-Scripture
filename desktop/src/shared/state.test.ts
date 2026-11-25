@@ -353,3 +353,32 @@ describe('Ctrl+C toggle', () => {
     expect(state.mode).toBe('slide')
   })
 })
+
+describe('staging in the preview', () => {
+  const verse = () => itemFromText('info', 'John 3:16', ['For God so loved the world'])
+
+  it('puts a clicked verse in the preview without going live', () => {
+    const state = reducer(freshState(), { type: 'stage', item: verse() })
+    expect(previewItem(state)?.title).toBe('John 3:16')
+    expect(state.live).toBeNull()
+  })
+
+  it('goes live with Go live', () => {
+    let state = reducer(freshState(), { type: 'stage', item: verse() })
+    state = reducer(state, { type: 'goLive' })
+    expect(state.live?.title).toBe('John 3:16')
+    expect(state.mode).toBe('slide')
+  })
+
+  it('shows the staged item itself on a double-click, so preview and live match', () => {
+    let state = reducer(freshState(), { type: 'stage', item: verse() })
+    state = reducer(state, { type: 'showNow', item: verse(), index: 0 })
+    expect(state.live?.itemId).toBe(state.staged?.id)
+  })
+
+  it('leaves the staged verse when a schedule item is picked', () => {
+    let state = reducer(freshState(), { type: 'stage', item: verse() })
+    state = reducer(state, { type: 'selectItem', id: state.items[0].id })
+    expect(state.staged).toBeNull()
+  })
+})

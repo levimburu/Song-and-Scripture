@@ -4,6 +4,8 @@ import type { SectionKind, Slide } from './types'
 export interface SplitOptions {
   maxLines?: number
   idPrefix?: string
+  /** Plain text such as notes and names: no Verse/Chorus headings, every paragraph is a screen. */
+  plain?: boolean
 }
 
 interface Header {
@@ -69,6 +71,22 @@ export function splitLyrics(text: string, options: SplitOptions = {}): Slide[] {
         .filter((line) => line.trim() !== '')
     )
     .filter((block) => block.length > 0)
+
+  if (options.plain) {
+    const plain: Slide[] = []
+    blocks.forEach((block, number) => {
+      const chunks = chunk(block, maxLines)
+      chunks.forEach((chunkLines, index) => {
+        plain.push({
+          id: `${prefix}-${plain.length + 1}`,
+          kind: 'text',
+          label: chunks.length > 1 ? `Screen ${number + 1} (${index + 1})` : `Screen ${number + 1}`,
+          lines: chunkLines
+        })
+      })
+    })
+    return plain
+  }
 
   const slides: Slide[] = []
   let verseCount = 0

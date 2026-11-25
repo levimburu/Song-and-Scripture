@@ -7,17 +7,51 @@ import type { MediaFile, OutputState, ScheduleItem, Slide } from '../../shared/t
 import { BackgroundPicker } from './BackgroundPicker'
 import { SlideView } from './SlideView'
 
-const SONGS_KEY = 'sas.songs.v1'
+const WORDS = {
+  songs: {
+    key: 'sas.songs.v1',
+    plain: false,
+    add: 'New song',
+    placeholder: 'Song title or words. Enter shows it.',
+    list: 'Songs',
+    none: 'No songs yet. Click New song.',
+    noMatch: 'No song matches.',
+    pick: 'Pick a song, or click New song to type or paste one in.',
+    titleHint: 'Song title',
+    lyricsHint: 'Song lyrics',
+    sample: 'Verse 1\nLine one\nLine two\n\nChorus\nLine one\nLine two',
+    help: 'Each paragraph is one screen: press Enter twice (leave a blank line) where you want the next screen to start. While the song is live, press the Down arrow for the next screen and Up to go back. Headings such as Verse 1 or Chorus on their own line are optional.',
+    textLabel: 'Lyrics',
+    bgLabel: 'Background for this song'
+  },
+  program: {
+    key: 'sas.program.v1',
+    plain: true,
+    add: 'New entry',
+    placeholder: 'Search the program. Enter shows it.',
+    list: 'Program entries',
+    none: 'Nothing here yet. Click New entry for sermon notes, names, testimonies, announcements.',
+    noMatch: 'No entry matches.',
+    pick: 'Pick an entry, or click New entry to type one in: sermon notes, names to welcome, testimonies, birthdays, announcements.',
+    titleHint: 'Entry title',
+    lyricsHint: 'Entry text',
+    sample: 'First point of the sermon\n\nSecond point\nWith a line under it\n\nOr one name per line:\nMary Wanjiru\nJohn Kiprop',
+    help: 'Each paragraph is one screen: press Enter twice (leave a blank line) where you want the next screen to start. For a list of names, put one name on each line and choose how many lines to show at a time. While it is live, press the Down arrow for the next screen and Up to go back.',
+    textLabel: 'Text',
+    bgLabel: 'Background for this entry'
+  }
+} as const
 
-function loadSongs(): Song[] {
+function loadSongs(variant: 'songs' | 'program'): Song[] {
   try {
-    return parseSongs(localStorage.getItem(SONGS_KEY)) ?? seedSongs()
+    return parseSongs(localStorage.getItem(WORDS[variant].key)) ?? (variant === 'songs' ? seedSongs() : [])
   } catch {
-    return seedSongs()
+    return variant === 'songs' ? seedSongs() : []
   }
 }
 
 interface Props {
+  variant?: 'songs' | 'program'
   onAdd: (item: ScheduleItem) => void
   onShowNow: (item: ScheduleItem, index?: number, toggle?: boolean) => void
   preview: (slide: Slide, background?: string | null) => OutputState
@@ -25,8 +59,10 @@ interface Props {
   onAddMedia: () => void
 }
 
-export function Songs({ onAdd, onShowNow, preview, media, onAddMedia }: Props): React.JSX.Element {
-  const [songs, setSongs] = useState<Song[]>(loadSongs)
+export function Songs({ variant = 'songs', onAdd, onShowNow, preview, media, onAddMedia }: Props): React.JSX.Element {
+  const w = WORDS[variant]
+  const SONGS_KEY = w.key
+  const [songs, setSongs] = useState<Song[]>(() => loadSongs(variant))
   const [query, setQuery] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [pickedSlide, setPickedSlide] = useState(0)
@@ -46,7 +82,7 @@ export function Songs({ onAdd, onShowNow, preview, media, onAddMedia }: Props): 
   const found = useMemo(() => searchSongs(songs, query), [songs, query])
   const song = found.find((s) => s.id === selectedId) ?? found[0] ?? null
   const lines = song?.linesPerScreen ?? DEFAULT_LINES
-  const slides = useMemo(() => (song ? splitLyrics(song.lyrics, { maxLines: lines }) : []), [song, lines])
+  const slides = useMemo(() => (song ? splitLyrics(song.lyrics, { maxLines: lines, plain: w.plain }) : []), [song, lines])
 
   useEffect(() => {
     listRef.current?.querySelector('.picked')?.scrollIntoView({ block: 'nearest' })
@@ -59,7 +95,7 @@ export function Songs({ onAdd, onShowNow, preview, media, onAddMedia }: Props): 
   }
 
   function show(index = pickedSlide, toggle = false): void {
-    if (song) onShowNow(itemFromSong(song.title, song.lyrics, lines, song.background), index, toggle)
+    if (song) onShowNow(itemFromSong(song.title, song.lyrics, lines, song.background, w.plain), index, toggle)
   }
 
   function setLines(value: number): void {
@@ -106,13 +142,13 @@ export function Songs({ onAdd, onShowNow, preview, media, onAddMedia }: Props): 
   }
 
   // The screen the cursor is in, so the editor shows what the audience will see.
-  const editSlides = useMemo(() => (editing ? splitLyrics(editing.lyrics, { maxLines: editing.lines }) : []), [editing])
+  const editSlides = useMemo(() => (editing ? splitLyrics(editing.lyrics, { maxLines: editing.lines, plain: w.plain }) : []), [editing])
   const caretSlide = useMemo(() => {
     if (!editing || editSlides.length === 0) return null
     // Count the lyric lines (not blank lines or headings) up to the cursor, then find the screen that holds that line.
     const upTo = editing.lyrics.slice(0, caret).replace(/\r\n?/g, '\n').split('\n')
-    const current = upTo.length > 0 && upTo[upTo.length - 1].trim() !== '' && !isSectionHeader(upTo[upTo.length - 1])
-    let n = upTo.filter((l) => l.trim() !== '' && !isSectionHeader(l)).length
+    const current = upTo.length > 0 && upTo[upTo.length - 1].trim() !== '' && (w.plain || !isSectionHeader(upTo[upTo.length - 1]))
+    let n = upTo.filter((l) => l.trim() !== '' && (w.plain || !isSectionHeader(l))).length
     if (!current) n += 1 // on a blank or heading line: show the screen that comes next
     let seen = 0
     for (const slide of editSlides) {
@@ -122,7 +158,7 @@ export function Songs({ onAdd, onShowNow, preview, media, onAddMedia }: Props): 
     return editSlides[editSlides.length - 1]
   }, [editing, editSlides, caret])
 
-  const stanzaCount = editing ? splitLyrics(editing.lyrics, { maxLines: editing.lines }).length : 0
+  const stanzaCount = editing ? splitLyrics(editing.lyrics, { maxLines: editing.lines, plain: w.plain }).length : 0
 
   return (
     <div className="songs">
@@ -137,31 +173,31 @@ export function Songs({ onAdd, onShowNow, preview, media, onAddMedia }: Props): 
                 setSelectedId(null)
               }}
               onKeyDown={onSearchKey}
-              placeholder="Song title or words. Enter shows it."
-              aria-label="Search songs"
+              placeholder={w.placeholder}
+              aria-label={`Search ${w.list.toLowerCase()}`}
               autoComplete="off"
               autoFocus
               data-autofocus
             />
           </label>
           <button className="btn small" onClick={() => setEditing({ id: null, title: '', lyrics: '', lines: DEFAULT_LINES })}>
-            <IconPlus size={14} /> New song
+            <IconPlus size={14} /> {w.add}
           </button>
         </div>
-        <ul className="song-list" ref={listRef} aria-label="Songs">
+        <ul className="song-list" ref={listRef} aria-label={w.list}>
           {found.map((s) => (
             <li
               key={s.id}
               className={`song-row${song?.id === s.id ? ' picked' : ''}`}
               onClick={() => select(s.id)}
-              onDoubleClick={() => onShowNow(itemFromSong(s.title, s.lyrics, s.linesPerScreen ?? DEFAULT_LINES, s.background), 0)}
+              onDoubleClick={() => onShowNow(itemFromSong(s.title, s.lyrics, s.linesPerScreen ?? DEFAULT_LINES, s.background, w.plain), 0)}
               title="Double-click to show"
             >
               {s.title}
             </li>
           ))}
           {found.length === 0 && (
-            <li className="empty">{songs.length === 0 ? 'No songs yet. Click New song.' : 'No song matches.'}</li>
+            <li className="empty">{songs.length === 0 ? w.none : w.noMatch}</li>
           )}
         </ul>
       </div>
@@ -185,7 +221,7 @@ export function Songs({ onAdd, onShowNow, preview, media, onAddMedia }: Props): 
                 <button className="btn small go-live" onClick={() => show()}>
                   <IconPlayerPlayFilled size={14} /> Show now
                 </button>
-                <button className="btn small" onClick={() => onAdd(itemFromSong(song.title, song.lyrics, lines, song.background))}>
+                <button className="btn small" onClick={() => onAdd(itemFromSong(song.title, song.lyrics, lines, song.background, w.plain))}>
                   <IconPlus size={14} /> Add
                 </button>
                 <button
@@ -219,27 +255,27 @@ export function Songs({ onAdd, onShowNow, preview, media, onAddMedia }: Props): 
             </ul>
           </>
         ) : (
-          <p className="empty">Pick a song, or click New song to type or paste one in.</p>
+          <p className="empty">{w.pick}</p>
         )}
       </div>
 
       {editing && (
         <div className="modal-backdrop" role="presentation">
-          <div className="modal xwide" role="dialog" aria-modal="true" aria-label={editing.id ? 'Edit song' : 'New song'}>
-            <h2>{editing.id ? 'Edit song' : 'New song'}</h2>
+          <div className="modal xwide" role="dialog" aria-modal="true" aria-label={editing.id ? `Edit ${w.titleHint.split(' ')[0].toLowerCase()}` : w.add}>
+            <h2>{editing.id ? `Edit ${w.titleHint.split(' ')[0].toLowerCase()}` : w.add}</h2>
             <label className="field">
               Title
               <input
                 value={editing.title}
                 maxLength={120}
                 onChange={(e) => setEditing({ ...editing, title: e.target.value })}
-                aria-label="Song title"
+                aria-label={w.titleHint}
                 autoFocus
               />
             </label>
             <div className="editor-split">
             <label className="field">
-              Lyrics
+              {w.textLabel}
               <textarea
                 value={editing.lyrics}
                 rows={14}
@@ -250,8 +286,8 @@ export function Songs({ onAdd, onShowNow, preview, media, onAddMedia }: Props): 
                 }}
                 onKeyUp={(e) => setCaret(e.currentTarget.selectionStart)}
                 onClick={(e) => setCaret(e.currentTarget.selectionStart)}
-                aria-label="Song lyrics"
-                placeholder={'Verse 1\nLine one\nLine two\n\nChorus\nLine one\nLine two'}
+                aria-label={w.lyricsHint}
+                placeholder={w.sample}
               />
             </label>
             <div className="editor-preview" aria-label="Preview">
@@ -276,7 +312,7 @@ export function Songs({ onAdd, onShowNow, preview, media, onAddMedia }: Props): 
               <span className="muted">at a time{stanzaCount > 0 && `: ${stanzaCount} screen${stanzaCount === 1 ? '' : 's'}`}.</span>
             </div>
             <div className="song-bg">
-              <span>Background for this song</span>
+              <span>{w.bgLabel}</span>
               <BackgroundPicker
                 media={media}
                 value={editing.background}
@@ -285,11 +321,7 @@ export function Songs({ onAdd, onShowNow, preview, media, onAddMedia }: Props): 
                 inheritLabel="Same as service"
               />
             </div>
-            <p className="muted">
-              Each paragraph is one screen: press Enter twice (leave a blank line) where you want the next screen to start.
-              While the song is live, press the Down arrow for the next screen and Up to go back. Headings such as Verse 1 or
-              Chorus on their own line are optional.
-            </p>
+            <p className="muted">{w.help}</p>
             <div className="modal-actions">
               <button className="btn" onClick={() => setEditing(null)}>Cancel</button>
               <button className="btn primary" disabled={editing.title.trim() === '' || editing.lyrics.trim() === ''} onClick={save}>

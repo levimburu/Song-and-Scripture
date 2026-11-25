@@ -238,7 +238,7 @@ export function App(): React.JSX.Element {
         <SchedulePane
           name={state.scheduleName}
           items={state.items}
-          selectedId={state.previewItemId}
+          selectedId={state.staged ? null : state.previewItemId}
           liveId={state.live?.itemId ?? null}
           backgroundMissingIds={missingIds}
           onSelect={(id) => dispatch({ type: 'selectItem', id })}
@@ -304,6 +304,7 @@ export function App(): React.JSX.Element {
         tab={state.tab}
         onTab={(tab) => dispatch({ type: 'setTab', tab })}
         onAdd={(it) => dispatch({ type: 'addItem', item: it })}
+        onStage={(it, index) => dispatch({ type: 'stage', item: it, index })}
         onShowNow={(it, index, toggle) => {
           dispatch({ type: 'showNow', item: it, index, toggle })
           // Let go of the text box or button so the arrow keys and space step through the verses.

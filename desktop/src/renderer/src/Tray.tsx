@@ -19,6 +19,7 @@ import type { DisplayStyle } from '../../shared/style'
 const TABS: { id: TrayTab; label: string }[] = [
   { id: 'songs', label: 'Songs' },
   { id: 'scriptures', label: 'Scriptures' },
+  { id: 'program', label: 'Program' },
   { id: 'media', label: 'Media' },
   { id: 'themes', label: 'Themes' }
 ]
@@ -39,6 +40,8 @@ interface Props {
   onAdd: (item: ScheduleItem) => void
   /** Puts an item on the screen straight away, starting at the given slide. */
   onShowNow: (item: ScheduleItem, index?: number, toggle?: boolean) => void
+  /** Puts it in the preview without showing it. */
+  onStage: (item: ScheduleItem, index?: number) => void
   media: React.ComponentProps<typeof MediaTab>
   /** Builds what a slide looks like on the screen (theme and background), for the song editor preview. */
   songPreview: (slide: Slide, background?: string | null) => OutputState
@@ -47,7 +50,7 @@ interface Props {
   bibles: BiblePickerProps
 }
 
-export function Tray({ expanded, onToggleExpanded, tab, onTab, onAdd, onShowNow, media, bibles, songPreview, style, onStyle }: Props): React.JSX.Element {
+export function Tray({ expanded, onToggleExpanded, tab, onTab, onAdd, onShowNow, onStage, media, bibles, songPreview, style, onStyle }: Props): React.JSX.Element {
   const bodyRef = useRef<HTMLDivElement>(null)
   // Coming back to Songs or Scriptures puts the cursor in its first box, ready to type.
   useEffect(() => {
@@ -71,8 +74,11 @@ export function Tray({ expanded, onToggleExpanded, tab, onTab, onAdd, onShowNow,
         <div className="tab-pane" hidden={tab !== 'songs'}>
           <Songs onAdd={onAdd} onShowNow={onShowNow} preview={songPreview} media={media.media} onAddMedia={media.onAdd} />
         </div>
+        <div className="tab-pane" hidden={tab !== 'program'}>
+          <Songs variant="program" onAdd={onAdd} onShowNow={onShowNow} preview={songPreview} media={media.media} onAddMedia={media.onAdd} />
+        </div>
         <div className="tab-pane" hidden={tab !== 'scriptures'}>
-          <Scriptures onAdd={onAdd} onShowNow={onShowNow} {...bibles} />
+          <Scriptures onAdd={onAdd} onShowNow={onShowNow} onStage={onStage} {...bibles} />
         </div>
         <div className="tab-pane" hidden={tab !== 'media'}>
           <MediaTab {...media} />
@@ -88,12 +94,13 @@ export function Tray({ expanded, onToggleExpanded, tab, onTab, onAdd, onShowNow,
 function Scriptures({
   onAdd,
   onShowNow,
+  onStage,
   versions,
   version,
   onVersion,
   onAddBible,
   onRemoveBible
-}: { onAdd: (item: ScheduleItem) => void; onShowNow: Props['onShowNow'] } & BiblePickerProps): React.JSX.Element {
+}: { onAdd: (item: ScheduleItem) => void; onShowNow: Props['onShowNow']; onStage: Props['onStage'] } & BiblePickerProps): React.JSX.Element {
   // EasyWorship-style picking: book (completes itself), then chapter, then verse.
   const [typed, setTyped] = useState('')
   const [chapterText, setChapterText] = useState('')
@@ -144,13 +151,24 @@ function Scriptures({
     listRef.current?.querySelector('.picked')?.scrollIntoView({ block: 'nearest' })
   }, [selected, result])
 
-  function show(index = selected, toggle = false): void {
-    if (!result) return
+  function passage(index: number): { item: ScheduleItem; at: number } | null {
+    if (!result) return null
     // A typed range such as 14-17 shows just that range; otherwise the whole chapter from the chosen verse.
     const whole = lookupPassage({ book: result.book, chapter: result.chapter }, version)
     const target = result.verses[index]
     const at = whole && target ? Math.max(whole.verses.findIndex((v) => v.verse === target.verse), 0) : 0
-    onShowNow(itemFromScripture(whole ?? result), at, toggle)
+    return { item: itemFromScripture(whole ?? result), at }
+  }
+
+  function show(index = selected, toggle = false): void {
+    const p = passage(index)
+    if (p) onShowNow(p.item, p.at, toggle)
+  }
+
+  /** One click: into the preview, not onto the screen. */
+  function stage(index: number): void {
+    const p = passage(index)
+    if (p) onStage(p.item, p.at)
   }
 
   function showHit(hitBook: string, hitChapter: number, verse: number): void {
@@ -345,6 +363,7 @@ function Scriptures({
               onClick={() => {
                 setPicked(i)
                 if (text.trim() === '') setVerseText(String(v.verse))
+                stage(i)
               }}
               onDoubleClick={() => show(i)}
             >

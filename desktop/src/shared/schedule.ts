@@ -3,13 +3,14 @@ import { uid } from './ids'
 import { splitLyrics } from './lyrics'
 import type { ItemStatus, ItemType, MediaFile, ScheduleItem } from './types'
 
-export function itemFromSong(title: string, lyrics: string, maxLines?: number, background?: string | null): ScheduleItem {
+/** A song, or with plain = true a program entry (notes, names, testimonies) shown the same way. */
+export function itemFromSong(title: string, lyrics: string, maxLines?: number, background?: string | null, plain = false): ScheduleItem {
   const id = uid('item')
   const item: ScheduleItem = {
     id,
-    type: 'song',
+    type: plain ? 'announcement' : 'song',
     title,
-    slides: splitLyrics(lyrics, { idPrefix: id, maxLines }),
+    slides: splitLyrics(lyrics, { idPrefix: id, maxLines, plain }),
     status: 'ready'
   }
   return background === undefined ? item : { ...item, background }

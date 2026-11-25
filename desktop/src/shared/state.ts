@@ -12,7 +12,7 @@ import {
   type Theme
 } from './types'
 
-export type TrayTab = 'songs' | 'scriptures' | 'media' | 'themes'
+export type TrayTab = 'songs' | 'scriptures' | 'program' | 'media' | 'themes'
 
 // A copy of the item that went live, so the screen never changes when the
 // schedule is edited afterwards.
@@ -29,6 +29,8 @@ export interface AppState {
   scheduleName: string
   items: ScheduleItem[]
   previewItemId: string | null
+  /** Something picked from a tray (a verse, say) and waiting in the preview. Not part of the schedule. */
+  staged: ScheduleItem | null
   previewIndex: number
   live: LiveSelection | null
   mode: OutputMode
@@ -49,6 +51,7 @@ export type Action =
   | { type: 'goLive' }
   | { type: 'toggleLive' }
   | { type: 'showNow'; item: ScheduleItem; index?: number; toggle?: boolean }
+  | { type: 'stage'; item: ScheduleItem; index?: number }
   | { type: 'liveGoto'; index: number }
   | { type: 'liveStep'; delta: number }
   | { type: 'setMode'; mode: OutputMode }
@@ -84,6 +87,7 @@ export function createInitialState(persisted?: Persisted | null): AppState {
     scheduleName: persisted?.scheduleName ?? DEFAULT_SCHEDULE_NAME,
     items,
     previewItemId: items[0]?.id ?? null,
+    staged: null,
     previewIndex: 0,
     live: null,
     mode: 'black',
@@ -125,8 +129,13 @@ function clamp(value: number, length: number): number {
   return Math.min(Math.max(value, 0), length - 1)
 }
 
+function sameContent(a: ScheduleItem, b: ScheduleItem): boolean {
+  const key = (item: ScheduleItem): string => JSON.stringify([item.title, item.background, item.slides.map((slide) => [slide.lines, slide.reference])])
+  return key(a) === key(b)
+}
+
 export function previewItem(state: AppState): ScheduleItem | null {
-  return state.items.find((item) => item.id === state.previewItemId) ?? null
+  return state.staged ?? state.items.find((item) => item.id === state.previewItemId) ?? null
 }
 
 export function reducer(state: AppState, action: Action): AppState {
@@ -136,9 +145,15 @@ export function reducer(state: AppState, action: Action): AppState {
       if (!item) return state
       return {
         ...state,
+        staged: null,
         previewItemId: item.id,
         previewIndex: clamp(action.index ?? 0, item.slides.length)
       }
+    }
+    case 'stage': {
+      // One click on a verse puts it in the preview. It goes live with Go live, or at once with a double-click.
+      if (action.item.slides.length === 0) return state
+      return { ...state, staged: action.item, previewIndex: clamp(action.index ?? 0, action.item.slides.length) }
     }
     case 'selectSlide': {
       const item = previewItem(state)
@@ -164,10 +179,12 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'showNow': {
       // Puts something on the screen straight away without adding it to the schedule.
       if (action.item.slides.length === 0) return state
+      // A double-click on what is already waiting in the preview shows that very item, so the preview and live stay in step.
+      const item = state.staged && sameContent(state.staged, action.item) ? state.staged : action.item
       if (action.toggle && state.mode === 'slide' && state.live) {
         // Ctrl+C on what is already showing takes it off the screen.
         const shown = state.live.slides[state.live.index]
-        const wanted = action.item.slides[Math.min(Math.max(action.index ?? 0, 0), action.item.slides.length - 1)]
+        const wanted = item.slides[Math.min(Math.max(action.index ?? 0, 0), item.slides.length - 1)]
         if (shown && wanted && shown.lines.join('\n') === wanted.lines.join('\n') && shown.reference === wanted.reference) {
           return { ...state, mode: 'clear' }
         }
@@ -176,11 +193,11 @@ export function reducer(state: AppState, action: Action): AppState {
         ...state,
         mode: 'slide',
         live: {
-          itemId: action.item.id,
-          title: action.item.title,
-          slides: action.item.slides,
-          index: clamp(action.index ?? 0, action.item.slides.length),
-          background: effectiveBackground(action.item, state.defaultBackground)
+          itemId: item.id,
+          title: item.title,
+          slides: item.slides,
+          index: clamp(action.index ?? 0, item.slides.length),
+          background: effectiveBackground(item, state.defaultBackground)
         }
       }
     }
@@ -228,6 +245,13 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'setItemBackground':
       return {
         ...state,
+        staged:
+          state.staged && state.staged.id === action.itemId
+            ? (() => {
+                const { background: _old, ...rest } = state.staged
+                return action.background === undefined ? rest : { ...rest, background: action.background }
+              })()
+            : state.staged,
         items: state.items.map((item) => {
           if (item.id !== action.itemId) return item
           const { background: _old, ...rest } = item
@@ -248,6 +272,7 @@ export function reducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         items: [...state.items, action.item],
+        staged: null,
         previewItemId: action.item.id,
         previewIndex: 0
       }
@@ -257,13 +282,14 @@ export function reducer(state: AppState, action: Action): AppState {
       const items = state.items.filter((item) => item.id !== action.id)
       if (state.previewItemId !== action.id) return { ...state, items }
       const neighbour = items[Math.min(index, items.length - 1)]
-      return { ...state, items, previewItemId: neighbour?.id ?? null, previewIndex: 0 }
+      return { ...state, items, staged: null, previewItemId: neighbour?.id ?? null, previewIndex: 0 }
     }
     case 'newSchedule':
       return {
         ...state,
         scheduleName: DEFAULT_SCHEDULE_NAME,
         items: [],
+        staged: null,
         previewItemId: null,
         previewIndex: 0
       }
@@ -272,6 +298,7 @@ export function reducer(state: AppState, action: Action): AppState {
         ...state,
         scheduleName: action.name,
         items: action.items,
+        staged: null,
         previewItemId: action.items[0]?.id ?? null,
         previewIndex: 0
       }

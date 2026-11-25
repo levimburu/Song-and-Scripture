@@ -36,7 +36,7 @@ export function MediaTab(props: Props): React.JSX.Element {
           <IconPhotoPlus size={16} /> Add photos or videos
         </button>
         <label>
-          Darken background
+          Darken background (optional)
           <input type="range" min={0} max={90} value={dim} onChange={(e) => props.onDim(Number(e.target.value))} aria-label="Darken background" />
           <span>{dim}%</span>
         </label>

@@ -28,7 +28,7 @@ describe('initial state', () => {
     expect(previewItem(state)?.id).toBe(state.items[0].id)
     expect(state.live).toBeNull()
     expect(state.mode).toBe('black')
-    expect(deriveOutput(state)).toEqual({ mode: 'black', slide: null, theme: 'dark', alert: null, background: null, dim: 40 })
+    expect(deriveOutput(state)).toEqual({ mode: 'black', slide: null, theme: 'dark', alert: null, background: null, dim: 0 })
   })
 
   it('restores saved items and themes', () => {
@@ -232,6 +232,10 @@ describe('backgrounds', () => {
     return reducer(songState(), { type: 'setMedia', media: [PHOTO, CLIP] })
   }
 
+  it('does not darken backgrounds unless asked', () => {
+    expect(freshState().dim).toBe(0)
+  })
+
   it('shows nothing by default', () => {
     const state = reducer(withMedia(), { type: 'goLive' })
     expect(deriveOutput(state).background).toBeNull()
@@ -274,7 +278,7 @@ describe('backgrounds', () => {
   it('keeps dim between 0 and 90', () => {
     expect(clampDim(-5)).toBe(0)
     expect(clampDim(150)).toBe(90)
-    expect(clampDim(Number.NaN)).toBe(40)
+    expect(clampDim(Number.NaN)).toBe(0)
     expect(reducer(freshState(), { type: 'setDim', dim: 65.4 }).dim).toBe(65)
   })
 })

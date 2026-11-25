@@ -52,7 +52,7 @@ export interface OutputState {
   dim: number
 }
 
-export const DEFAULT_DIM = 40
+export const DEFAULT_DIM = 0
 
 export const DEFAULT_OUTPUT: OutputState = {
   mode: 'black',

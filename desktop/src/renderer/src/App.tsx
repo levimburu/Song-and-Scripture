@@ -45,7 +45,7 @@ function loadPersisted(): Persisted | null {
       theme: d.theme,
       outputTheme: d.outputTheme,
       defaultBackground: typeof d.defaultBackground === 'string' ? d.defaultBackground : null,
-      dim: typeof d.dim === 'number' ? clampDim(d.dim) : undefined
+      dim: typeof d.bgDim === 'number' ? clampDim(d.bgDim) : undefined
     }
   } catch {
     return null
@@ -88,7 +88,7 @@ export function App(): React.JSX.Element {
         defaultBackground: state.defaultBackground,
         dim: state.dim
       }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...data, bgDim: data.dim, dim: undefined }))
     } catch {
       /* storage unavailable: autosave is best effort */
     }

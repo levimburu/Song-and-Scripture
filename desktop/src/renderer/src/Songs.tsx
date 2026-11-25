@@ -120,7 +120,7 @@ export function Songs({ onAdd, onShowNow }: Props): React.JSX.Element {
               autoFocus
             />
           </label>
-          <button className="btn small" onClick={() => setEditing({ id: null, title: '', lyrics: '', lines: 1 })}>
+          <button className="btn small" onClick={() => setEditing({ id: null, title: '', lyrics: '', lines: DEFAULT_LINES })}>
             <IconPlus size={14} /> New song
           </button>
         </div>
@@ -170,10 +170,10 @@ export function Songs({ onAdd, onShowNow }: Props): React.JSX.Element {
               </span>
             </div>
             <div className="lines-row">
-              <span>Show</span>
-              {[1, 2, 3, 4, WHOLE_SECTION].map((n) => (
+              <span>Each screen shows</span>
+              {[WHOLE_SECTION, 1, 2, 3, 4].map((n) => (
                 <button key={n} className={`btn small${lines === n ? ' on' : ''}`} onClick={() => setLines(n)} aria-pressed={lines === n}>
-                  {n === WHOLE_SECTION ? 'Whole section' : n === 1 ? '1 line' : `${n} lines`}
+                  {n === WHOLE_SECTION ? 'Whole paragraph' : n === 1 ? '1 line' : `${n} lines`}
                 </button>
               ))}
               <span className="muted">at a time. {slides.length} screen{slides.length === 1 ? '' : 's'}.</span>
@@ -223,22 +223,23 @@ export function Songs({ onAdd, onShowNow }: Props): React.JSX.Element {
               />
             </label>
             <div className="lines-row">
-              <span>Show</span>
-              {[1, 2, 3, 4, WHOLE_SECTION].map((n) => (
+              <span>Each screen shows</span>
+              {[WHOLE_SECTION, 1, 2, 3, 4].map((n) => (
                 <button
                   key={n}
                   className={`btn small${editing.lines === n ? ' on' : ''}`}
                   onClick={() => setEditing({ ...editing, lines: n })}
                   aria-pressed={editing.lines === n}
                 >
-                  {n === WHOLE_SECTION ? 'Whole section' : n === 1 ? '1 line' : `${n} lines`}
+                  {n === WHOLE_SECTION ? 'Whole paragraph' : n === 1 ? '1 line' : `${n} lines`}
                 </button>
               ))}
               <span className="muted">at a time{stanzaCount > 0 && `: ${stanzaCount} screen${stanzaCount === 1 ? '' : 's'}`}.</span>
             </div>
             <p className="muted">
-              Write one phrase per line. While the song is live, press the Down arrow to show the next one and Up to go back.
-              Leave a blank line between sections; headings such as Verse 1 or Chorus on their own line label them.
+              Each paragraph is one screen: press Enter twice (leave a blank line) where you want the next screen to start.
+              While the song is live, press the Down arrow for the next screen and Up to go back. Headings such as Verse 1 or
+              Chorus on their own line are optional.
             </p>
             <div className="modal-actions">
               <button className="btn" onClick={() => setEditing(null)}>Cancel</button>

@@ -5,13 +5,13 @@ export interface Song {
   id: string
   title: string
   lyrics: string
-  /** How many lines go on one screen (1 to 12). Missing means the default of 4. */
+  /** How many lines go on one screen (1 to 12). Missing means one paragraph per screen. */
   linesPerScreen?: number
 }
 
 export const MAX_SONGS = 5000
-export const DEFAULT_LINES = 4
 export const WHOLE_SECTION = 12
+export const DEFAULT_LINES = WHOLE_SECTION
 const MAX_LYRICS = 20000
 
 export function newSong(title: string, lyrics: string): Song {

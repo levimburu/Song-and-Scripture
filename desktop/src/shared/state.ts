@@ -48,7 +48,7 @@ export type Action =
   | { type: 'selectSlide'; index: number }
   | { type: 'goLive' }
   | { type: 'toggleLive' }
-  | { type: 'showNow'; item: ScheduleItem; index?: number }
+  | { type: 'showNow'; item: ScheduleItem; index?: number; toggle?: boolean }
   | { type: 'liveGoto'; index: number }
   | { type: 'liveStep'; delta: number }
   | { type: 'setMode'; mode: OutputMode }
@@ -163,6 +163,14 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'showNow': {
       // Puts something on the screen straight away without adding it to the schedule.
       if (action.item.slides.length === 0) return state
+      if (action.toggle && state.mode === 'slide' && state.live) {
+        // Ctrl+C on what is already showing takes it off the screen.
+        const shown = state.live.slides[state.live.index]
+        const wanted = action.item.slides[Math.min(Math.max(action.index ?? 0, 0), action.item.slides.length - 1)]
+        if (shown && wanted && shown.lines.join('\n') === wanted.lines.join('\n') && shown.reference === wanted.reference) {
+          return { ...state, mode: 'clear' }
+        }
+      }
       return {
         ...state,
         mode: 'slide',
@@ -176,6 +184,10 @@ export function reducer(state: AppState, action: Action): AppState {
       }
     }
     case 'toggleLive': {
+      // Something put up with Show now is not in the schedule: Ctrl+C hides it, and brings it back.
+      if (state.live && !state.items.some((it) => it.id === state.live?.itemId)) {
+        return { ...state, mode: state.mode === 'slide' ? 'clear' : 'slide' }
+      }
       const item = previewItem(state)
       const showing =
         state.mode === 'slide' &&

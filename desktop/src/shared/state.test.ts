@@ -331,3 +331,24 @@ describe('backgrounds', () => {
     expect(reducer(freshState(), { type: 'setDim', dim: 65.4 }).dim).toBe(65)
   })
 })
+
+describe('Ctrl+C toggle', () => {
+  it('takes a shown verse off the screen and shows it again', () => {
+    const item = itemFromText('info', 'Verse', ['In the beginning'])
+    let state = reducer(freshState(), { type: 'showNow', item, index: 0, toggle: true })
+    expect(state.mode).toBe('slide')
+    state = reducer(state, { type: 'showNow', item, index: 0, toggle: true })
+    expect(state.mode).toBe('clear')
+    state = reducer(state, { type: 'showNow', item, index: 0, toggle: true })
+    expect(state.mode).toBe('slide')
+  })
+
+  it('hides and restores a Show now item with the global Ctrl+C', () => {
+    const item = itemFromText('info', 'Verse', ['In the beginning'])
+    let state = reducer(freshState(), { type: 'showNow', item })
+    state = reducer(state, { type: 'toggleLive' })
+    expect(state.mode).toBe('clear')
+    state = reducer(state, { type: 'toggleLive' })
+    expect(state.mode).toBe('slide')
+  })
+})

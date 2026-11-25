@@ -299,8 +299,8 @@ export function App(): React.JSX.Element {
         tab={state.tab}
         onTab={(tab) => dispatch({ type: 'setTab', tab })}
         onAdd={(it) => dispatch({ type: 'addItem', item: it })}
-        onShowNow={(it, index) => {
-          dispatch({ type: 'showNow', item: it, index })
+        onShowNow={(it, index, toggle) => {
+          dispatch({ type: 'showNow', item: it, index, toggle })
           // Let go of the text box or button so the arrow keys and space step through the verses.
           if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
         }}

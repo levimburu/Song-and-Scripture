@@ -19,7 +19,7 @@ function loadSongs(): Song[] {
 
 interface Props {
   onAdd: (item: ScheduleItem) => void
-  onShowNow: (item: ScheduleItem, index?: number) => void
+  onShowNow: (item: ScheduleItem, index?: number, toggle?: boolean) => void
   preview: (slide: Slide, background?: string | null) => OutputState
   media: MediaFile[]
   onAddMedia: () => void
@@ -58,8 +58,8 @@ export function Songs({ onAdd, onShowNow, preview, media, onAddMedia }: Props): 
     setConfirmDelete(false)
   }
 
-  function show(index = pickedSlide): void {
-    if (song) onShowNow(itemFromSong(song.title, song.lyrics, lines, song.background), index)
+  function show(index = pickedSlide, toggle = false): void {
+    if (song) onShowNow(itemFromSong(song.title, song.lyrics, lines, song.background), index, toggle)
   }
 
   function setLines(value: number): void {
@@ -101,7 +101,7 @@ export function Songs({ onAdd, onShowNow, preview, media, onAddMedia }: Props): 
     } else if (e.key === 'Enter') show(0)
     else if (e.key.toLowerCase() === 'c' && e.ctrlKey && input.selectionStart === input.selectionEnd && song) {
       e.preventDefault()
-      show(0)
+      show(0, true)
     }
   }
 

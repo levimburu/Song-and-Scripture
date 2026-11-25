@@ -38,7 +38,7 @@ interface Props {
   onTab: (tab: TrayTab) => void
   onAdd: (item: ScheduleItem) => void
   /** Puts an item on the screen straight away, starting at the given slide. */
-  onShowNow: (item: ScheduleItem, index?: number) => void
+  onShowNow: (item: ScheduleItem, index?: number, toggle?: boolean) => void
   media: React.ComponentProps<typeof MediaTab>
   /** Builds what a slide looks like on the screen (theme and background), for the song editor preview. */
   songPreview: (slide: Slide, background?: string | null) => OutputState
@@ -144,13 +144,13 @@ function Scriptures({
     listRef.current?.querySelector('.picked')?.scrollIntoView({ block: 'nearest' })
   }, [selected, result])
 
-  function show(index = selected): void {
+  function show(index = selected, toggle = false): void {
     if (!result) return
     // A typed range such as 14-17 shows just that range; otherwise the whole chapter from the chosen verse.
     const whole = lookupPassage({ book: result.book, chapter: result.chapter }, version)
     const target = result.verses[index]
     const at = whole && target ? Math.max(whole.verses.findIndex((v) => v.verse === target.verse), 0) : 0
-    onShowNow(itemFromScripture(whole ?? result), at)
+    onShowNow(itemFromScripture(whole ?? result), at, toggle)
   }
 
   function showHit(hitBook: string, hitChapter: number, verse: number): void {
@@ -193,7 +193,7 @@ function Scriptures({
       if (result) show()
     } else if (e.key.toLowerCase() === 'c' && e.ctrlKey && input.selectionStart === input.selectionEnd && result) {
       e.preventDefault()
-      show()
+      show(selected, true)
     } else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
       // Right (or left) moves on to the next box: book -> chapter -> verse.
       if (field === 'book' && book && (atEnd || e.key === 'ArrowLeft')) {
@@ -313,7 +313,7 @@ function Scriptures({
               if (e.key === 'Enter' && result) show()
               else if (e.key.toLowerCase() === 'c' && e.ctrlKey && input.selectionStart === input.selectionEnd && result) {
                 e.preventDefault()
-                show()
+                show(selected, true)
               }
             }}
             placeholder="John 3:16 or for god so loved"

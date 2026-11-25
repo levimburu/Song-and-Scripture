@@ -8,11 +8,11 @@ import {
   parseReference,
   searchVerses
 } from '../../shared/bible'
-import { SAMPLE_SONGS } from '../../shared/sample'
-import { itemFromScripture, itemFromSong } from '../../shared/schedule'
+import { itemFromScripture } from '../../shared/schedule'
 import type { TrayTab } from '../../shared/state'
 import type { BibleSummary, ScheduleItem } from '../../shared/types'
 import { MediaTab } from './MediaTab'
+import { Songs } from './Songs'
 
 const TABS: { id: TrayTab; label: string }[] = [
   { id: 'songs', label: 'Songs' },
@@ -50,39 +50,12 @@ export function Tray({ tab, onTab, onAdd, onShowNow, media, bibles }: Props): Re
         ))}
       </nav>
       <div className="tray-body">
-        {tab === 'songs' && <Songs onAdd={onAdd} />}
+        {tab === 'songs' && <Songs onAdd={onAdd} onShowNow={onShowNow} />}
         {tab === 'scriptures' && <Scriptures onAdd={onAdd} onShowNow={onShowNow} {...bibles} />}
         {tab === 'media' && <MediaTab {...media} />}
         {tab === 'themes' && <p className="empty">Themes come in a later milestone: fonts, backgrounds and church logo.</p>}
       </div>
     </section>
-  )
-}
-
-function Songs({ onAdd }: { onAdd: (item: ScheduleItem) => void }): React.JSX.Element {
-  const [query, setQuery] = useState('')
-  const songs = useMemo(
-    () => SAMPLE_SONGS.filter((s) => s.title.toLowerCase().includes(query.trim().toLowerCase())),
-    [query]
-  )
-  return (
-    <div className="tray-split">
-      <label className="search">
-        <IconSearch size={16} />
-        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search songs" aria-label="Search songs" />
-      </label>
-      <ul className="tray-list">
-        {songs.map((song) => (
-          <li key={song.title}>
-            <span>{song.title}</span>
-            <button className="btn small" onClick={() => onAdd(itemFromSong(song.title, song.lyrics))}>
-              <IconPlus size={14} /> Add
-            </button>
-          </li>
-        ))}
-        {songs.length === 0 && <li className="empty">No songs match.</li>}
-      </ul>
-    </div>
   )
 }
 

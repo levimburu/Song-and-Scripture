@@ -205,3 +205,18 @@ select { background: var(--bg); border: 1px solid var(--border-control); border-
 .verse-list { flex: 1 1 0; min-height: 60px; }
 .scripture-result { flex-shrink: 0; }
 .bible-row { flex-shrink: 0; }
+
+/* Songs tab */
+.songs { display: grid; grid-template-columns: 320px 1fr; gap: 12px; flex: 1; min-height: 0; }
+.songs-left, .songs-right { display: flex; flex-direction: column; gap: 8px; min-height: 0; min-width: 0; }
+.songs-search { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+.songs-search .search { flex: 1; }
+.song-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; min-height: 0; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); }
+.song-row { padding: 7px 10px; cursor: pointer; user-select: none; }
+.song-row:hover { background: var(--panel); }
+.song-row.picked { background: var(--select); color: var(--select-text); }
+.song-slides .verse-text { white-space: normal; }
+.modal.wide { width: 640px; }
+.modal textarea { background: var(--bg); border: 1px solid var(--border-control); border-radius: 6px; padding: 8px 10px; color: var(--text); font: inherit; resize: vertical; }
+.btn.danger { background: #b3261e; border-color: #b3261e; color: #fff; }
+.verse-list { align-content: start; }

@@ -23,8 +23,6 @@ export interface LiveSelection {
   index: number
   /** Resolved when the item went live: a media id or null for none. */
   background: string | null
-  /** The item's own choice (undefined = it follows the service background). */
-  own?: string | null
 }
 
 export interface AppState {
@@ -158,8 +156,7 @@ export function reducer(state: AppState, action: Action): AppState {
           title: item.title,
           slides: item.slides,
           index: clamp(state.previewIndex, item.slides.length),
-          background: effectiveBackground(item, state.defaultBackground),
-          own: item.background
+          background: effectiveBackground(item, state.defaultBackground)
         }
       }
     }
@@ -174,8 +171,7 @@ export function reducer(state: AppState, action: Action): AppState {
           title: action.item.title,
           slides: action.item.slides,
           index: clamp(action.index ?? 0, action.item.slides.length),
-          background: effectiveBackground(action.item, state.defaultBackground),
-          own: action.item.background
+          background: effectiveBackground(action.item, state.defaultBackground)
         }
       }
     }
@@ -215,19 +211,10 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'setMedia':
       return { ...state, media: action.media }
     case 'setDefaultBackground':
-      return {
-        ...state,
-        defaultBackground: action.mediaId,
-        // Whatever is on the screen and follows the service background changes with it.
-        live: state.live && state.live.own === undefined ? { ...state.live, background: action.mediaId } : state.live
-      }
+      return { ...state, defaultBackground: action.mediaId }
     case 'setItemBackground':
       return {
         ...state,
-        live:
-          state.live && state.live.itemId === action.itemId
-            ? { ...state.live, own: action.background, background: action.background === undefined ? state.defaultBackground : action.background }
-            : state.live,
         items: state.items.map((item) => {
           if (item.id !== action.itemId) return item
           const { background: _old, ...rest } = item

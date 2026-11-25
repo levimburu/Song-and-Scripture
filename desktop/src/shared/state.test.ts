@@ -295,22 +295,14 @@ describe('backgrounds', () => {
     expect('background' in previewItem(state)!).toBe(false)
   })
 
-  it('changes the background on the screen right away when the live item follows it', () => {
+  it('changes the background in the preview only until Go live is pressed', () => {
     let state = reducer(withMedia(), { type: 'goLive' })
-    expect(deriveOutput(state).background).toBeNull()
     state = reducer(state, { type: 'setItemBackground', itemId: state.previewItemId!, background: 'm1' })
-    expect(deriveOutput(state).background?.kind).toBe('image')
-    state = reducer(state, { type: 'setItemBackground', itemId: state.previewItemId!, background: undefined })
     expect(deriveOutput(state).background).toBeNull()
-  })
-
-  it('lets the service background change what is live, unless the item has its own', () => {
-    let state = reducer(withMedia(), { type: 'goLive' })
-    state = reducer(state, { type: 'setDefaultBackground', mediaId: 'm1' })
-    expect(deriveOutput(state).background?.kind).toBe('image')
-    state = reducer(state, { type: 'setItemBackground', itemId: state.previewItemId!, background: null })
     state = reducer(state, { type: 'setDefaultBackground', mediaId: 'm1' })
     expect(deriveOutput(state).background).toBeNull()
+    state = reducer(state, { type: 'goLive' })
+    expect(deriveOutput(state).background?.kind).toBe('image')
   })
 
   it('shows a song with its own background and a media item full screen', () => {

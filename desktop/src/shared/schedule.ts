@@ -3,13 +3,13 @@ import { uid } from './ids'
 import { splitLyrics } from './lyrics'
 import type { ItemStatus, ItemType, ScheduleItem } from './types'
 
-export function itemFromSong(title: string, lyrics: string): ScheduleItem {
+export function itemFromSong(title: string, lyrics: string, maxLines?: number): ScheduleItem {
   const id = uid('item')
   return {
     id,
     type: 'song',
     title,
-    slides: splitLyrics(lyrics, { idPrefix: id }),
+    slides: splitLyrics(lyrics, { idPrefix: id, maxLines }),
     status: 'ready'
   }
 }

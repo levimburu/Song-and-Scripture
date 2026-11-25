@@ -20,3 +20,13 @@ describe('song library', () => {
     expect(parseSongs(JSON.stringify(seedSongs()))).toHaveLength(seedSongs().length)
   })
 })
+
+import { splitLyrics } from './lyrics'
+describe('lines per screen', () => {
+  it('one line per screen gives a screen per line', () => {
+    const text = 'Verse 1\nOne two three\nFour five six\nSeven eight\n\nChorus\nA b c'
+    expect(splitLyrics(text, { maxLines: 1 })).toHaveLength(4)
+    expect(splitLyrics(text, { maxLines: 2 })).toHaveLength(3)
+    expect(splitLyrics(text, { maxLines: 12 })).toHaveLength(2)
+  })
+})

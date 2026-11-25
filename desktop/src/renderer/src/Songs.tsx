@@ -2,7 +2,7 @@ import { IconEdit, IconPlayerPlayFilled, IconPlus, IconSearch, IconTrash } from 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { splitLyrics } from '../../shared/lyrics'
 import { itemFromSong } from '../../shared/schedule'
-import { newSong, parseSongs, searchSongs, seedSongs, type Song } from '../../shared/songs'
+import { DEFAULT_LINES, newSong, parseSongs, searchSongs, seedSongs, WHOLE_SECTION, type Song } from '../../shared/songs'
 import type { ScheduleItem } from '../../shared/types'
 
 const SONGS_KEY = 'sas.songs.v1'
@@ -39,7 +39,8 @@ export function Songs({ onAdd, onShowNow }: Props): React.JSX.Element {
 
   const found = useMemo(() => searchSongs(songs, query), [songs, query])
   const song = found.find((s) => s.id === selectedId) ?? found[0] ?? null
-  const slides = useMemo(() => (song ? splitLyrics(song.lyrics) : []), [song])
+  const lines = song?.linesPerScreen ?? DEFAULT_LINES
+  const slides = useMemo(() => (song ? splitLyrics(song.lyrics, { maxLines: lines }) : []), [song, lines])
 
   useEffect(() => {
     listRef.current?.querySelector('.picked')?.scrollIntoView({ block: 'nearest' })
@@ -52,7 +53,13 @@ export function Songs({ onAdd, onShowNow }: Props): React.JSX.Element {
   }
 
   function show(index = pickedSlide): void {
-    if (song) onShowNow(itemFromSong(song.title, song.lyrics), index)
+    if (song) onShowNow(itemFromSong(song.title, song.lyrics, lines), index)
+  }
+
+  function setLines(value: number): void {
+    if (!song) return
+    setSongs((all) => all.map((s) => (s.id === song.id ? { ...s, linesPerScreen: value } : s)))
+    setPickedSlide(0)
   }
 
   function save(): void {
@@ -92,7 +99,7 @@ export function Songs({ onAdd, onShowNow }: Props): React.JSX.Element {
     }
   }
 
-  const stanzaCount = editing ? splitLyrics(editing.lyrics).length : 0
+  const stanzaCount = editing ? splitLyrics(editing.lyrics, { maxLines: lines }).length : 0
 
   return (
     <div className="songs">
@@ -123,7 +130,7 @@ export function Songs({ onAdd, onShowNow }: Props): React.JSX.Element {
               key={s.id}
               className={`song-row${song?.id === s.id ? ' picked' : ''}`}
               onClick={() => select(s.id)}
-              onDoubleClick={() => onShowNow(itemFromSong(s.title, s.lyrics), 0)}
+              onDoubleClick={() => onShowNow(itemFromSong(s.title, s.lyrics, s.linesPerScreen ?? DEFAULT_LINES), 0)}
               title="Double-click to show"
             >
               {s.title}
@@ -144,7 +151,7 @@ export function Songs({ onAdd, onShowNow }: Props): React.JSX.Element {
                 <button className="btn small go-live" onClick={() => show()}>
                   <IconPlayerPlayFilled size={14} /> Show now
                 </button>
-                <button className="btn small" onClick={() => onAdd(itemFromSong(song.title, song.lyrics))}>
+                <button className="btn small" onClick={() => onAdd(itemFromSong(song.title, song.lyrics, lines))}>
                   <IconPlus size={14} /> Add to schedule
                 </button>
                 <button
@@ -161,6 +168,15 @@ export function Songs({ onAdd, onShowNow }: Props): React.JSX.Element {
                   </button>
                 )}
               </span>
+            </div>
+            <div className="lines-row">
+              <span>Show</span>
+              {[1, 2, 3, 4, WHOLE_SECTION].map((n) => (
+                <button key={n} className={`btn small${lines === n ? ' on' : ''}`} onClick={() => setLines(n)} aria-pressed={lines === n}>
+                  {n === WHOLE_SECTION ? 'Whole section' : n === 1 ? '1 line' : `${n} lines`}
+                </button>
+              ))}
+              <span className="muted">at a time. {slides.length} screen{slides.length === 1 ? '' : 's'}.</span>
             </div>
             <ul className="verse-list song-slides" aria-label="Sections">
               {slides.map((slide, i) => (
@@ -208,7 +224,7 @@ export function Songs({ onAdd, onShowNow }: Props): React.JSX.Element {
             </label>
             <p className="muted">
               Leave a blank line between sections. Optional headings such as Verse 1, Chorus or Bridge on their own line
-              label each section. Long sections split into screens automatically.
+              label each section. For a few words at a time, put each phrase on its own line, then choose how many lines to show.
               {stanzaCount > 0 && ` ${stanzaCount} screen${stanzaCount === 1 ? '' : 's'}.`}
             </p>
             <div className="modal-actions">

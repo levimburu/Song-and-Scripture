@@ -220,3 +220,6 @@ select { background: var(--bg); border: 1px solid var(--border-control); border-
 .modal textarea { background: var(--bg); border: 1px solid var(--border-control); border-radius: 6px; padding: 8px 10px; color: var(--text); font: inherit; resize: vertical; }
 .btn.danger { background: #b3261e; border-color: #b3261e; color: #fff; }
 .verse-list { align-content: start; }
+
+.lines-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; flex-shrink: 0; }
+.btn.on { background: var(--blue); border-color: var(--blue); color: #fff; }

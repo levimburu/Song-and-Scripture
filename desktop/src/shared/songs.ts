@@ -5,9 +5,13 @@ export interface Song {
   id: string
   title: string
   lyrics: string
+  /** How many lines go on one screen (1 to 12). Missing means the default of 4. */
+  linesPerScreen?: number
 }
 
 export const MAX_SONGS = 5000
+export const DEFAULT_LINES = 4
+export const WHOLE_SECTION = 12
 const MAX_LYRICS = 20000
 
 export function newSong(title: string, lyrics: string): Song {
@@ -26,7 +30,9 @@ export function isSong(value: unknown): value is Song {
     typeof v.title === 'string' &&
     v.title.trim() !== '' &&
     typeof v.lyrics === 'string' &&
-    v.lyrics.length <= MAX_LYRICS
+    v.lyrics.length <= MAX_LYRICS &&
+    (v.linesPerScreen === undefined ||
+      (typeof v.linesPerScreen === 'number' && Number.isInteger(v.linesPerScreen) && v.linesPerScreen >= 1 && v.linesPerScreen <= 12))
   )
 }
 

@@ -1,3 +1,5 @@
+import { BOOK_NAMES, type BibleText } from './bible'
+import { VERSION_PATTERN } from './bibleImport'
 import type { ItemStatus, ItemType, ScheduleItem, SectionKind, Slide } from './types'
 
 const ITEM_TYPES: ReadonlySet<string> = new Set<ItemType>([
@@ -51,4 +53,33 @@ export function isScheduleItem(value: unknown): value is ScheduleItem {
 
 export function isScheduleItems(value: unknown): value is ScheduleItem[] {
   return Array.isArray(value) && value.every(isScheduleItem)
+}
+
+export const MAX_BIBLE_VERSES = 40000
+
+/** Checks a Bible text before it is saved or registered. */
+export function isBibleText(value: unknown): value is BibleText {
+  if (!isRecord(value)) return false
+  if (typeof value.version !== 'string' || !VERSION_PATTERN.test(value.version)) return false
+  if (typeof value.name !== 'string' || value.name.trim() === '' || value.name.length > 80) return false
+  if (!isRecord(value.books)) return false
+  let verses = 0
+  for (const [book, chapters] of Object.entries(value.books)) {
+    if (!BOOK_NAMES.includes(book) || !Array.isArray(chapters) || chapters.length > 200) return false
+    for (const chapter of chapters) {
+      if (!Array.isArray(chapter) || chapter.length > 200) return false
+      for (const text of chapter) {
+        if (typeof text !== 'string' || text.length > 5000) return false
+        verses++
+      }
+    }
+  }
+  if (verses > MAX_BIBLE_VERSES) return false
+  if (value.bookLabels !== undefined) {
+    if (!isRecord(value.bookLabels)) return false
+    for (const [book, label] of Object.entries(value.bookLabels)) {
+      if (!BOOK_NAMES.includes(book) || typeof label !== 'string' || label.length > 60) return false
+    }
+  }
+  return true
 }

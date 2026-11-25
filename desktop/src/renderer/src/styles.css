@@ -155,3 +155,20 @@ button, input { font: inherit; color: inherit; }
 .media-size.warn { color: var(--warn); }
 .media-actions { display: flex; gap: 4px; padding: 6px 8px 8px; }
 .media-actions .btn { flex: 1; padding: 0 4px; justify-content: center; white-space: nowrap; }
+
+/* Bible picker and import dialog */
+.bible-row { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.bible-row label { display: grid; gap: 4px; color: var(--text-2); font-size: 12px; }
+select { background: var(--bg); border: 1px solid var(--border-control); border-radius: 6px; padding: 6px 10px; color: inherit; font: inherit; min-width: 220px; }
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); display: flex; align-items: center; justify-content: center; z-index: 50; }
+.modal { width: 520px; max-width: 92vw; max-height: 90vh; overflow: auto; background: var(--panel); border: 1px solid var(--border-control); border-radius: 10px; padding: 20px; display: grid; gap: 12px; }
+.modal h2 { margin: 0; font-size: 18px; }
+.modal code { background: var(--bg); padding: 1px 5px; border-radius: 4px; }
+.modal-summary { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; display: grid; gap: 4px; }
+.modal .field { display: grid; gap: 4px; color: var(--text-2); }
+.modal .field input { background: var(--bg); border: 1px solid var(--border-control); border-radius: 6px; padding: 7px 10px; color: var(--text); }
+.modal .check { display: flex; gap: 10px; align-items: flex-start; color: var(--text-2); }
+.modal .check input { margin-top: 3px; accent-color: var(--blue); }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.modal-error { color: var(--live); margin: 0; }
+.modal-warn { color: var(--warn); }

@@ -7,5 +7,9 @@ export const IPC = {
   toggleOutput: 'output:toggle',
   listMedia: 'media:list',
   addMedia: 'media:add',
-  removeMedia: 'media:remove'
+  removeMedia: 'media:remove',
+  pickBibleFile: 'bible:pick',
+  listBibles: 'bible:list',
+  saveBible: 'bible:save',
+  removeBible: 'bible:remove'
 } as const

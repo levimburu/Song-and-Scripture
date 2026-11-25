@@ -26,7 +26,7 @@ export function itemFromScripture(result: BibleResult): ScheduleItem {
       kind: 'scripture',
       label: `${result.chapter}:${verse.verse}`,
       lines: [verse.text],
-      reference: `${result.book} ${result.chapter}:${verse.verse} (${result.version})`
+      reference: `${result.bookLabel} ${result.chapter}:${verse.verse} (${result.version})`
     }))
   }
 }

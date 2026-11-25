@@ -80,4 +80,21 @@ export interface Api {
   /** Opens a file picker, copies the chosen files into the app, returns the full list. */
   addMedia(): Promise<MediaFile[]>
   removeMedia(id: string): Promise<MediaFile[]>
+  /** Opens a file picker for a Bible file. Resolves to null if cancelled or unreadable. */
+  pickBibleFile(): Promise<BibleFileContents | null>
+  /** Every Bible the church has imported, with full text. */
+  listBibles(): Promise<unknown[]>
+  /** Saves an imported Bible. Resolves to an error message if it is refused, else null. */
+  saveBible(bible: unknown): Promise<string | null>
+  removeBible(version: string): Promise<void>
+}
+
+export interface BibleFileContents {
+  fileName: string
+  text: string
+}
+
+export interface BibleSummary {
+  version: string
+  name: string
 }

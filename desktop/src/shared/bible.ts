@@ -13,6 +13,8 @@ export interface BibleVerse {
 export interface BibleResult {
   version: string
   book: string
+  /** The book name as this Bible spells it (for example "Yohana"). */
+  bookLabel: string
   chapter: number
   reference: string
   verses: BibleVerse[]
@@ -108,6 +110,83 @@ const BOOK_LOOKUP: Map<string, string> = (() => {
   return map
 })()
 
+// Kiswahili book names, so Swahili Bibles and Swahili references like "Yohana 3:16" work.
+const SWAHILI_NAMES: Array<[string, string[]]> = [
+  ['Genesis', ['Mwanzo']],
+  ['Haggai', ['Hagai']],
+  ['Malachi', ['Malaki']],
+  ['Titus', ['Tito']],
+  ['Exodus', ['Kutoka']],
+  ['Leviticus', ['Walawi', 'Mambo ya Walawi']],
+  ['Numbers', ['Hesabu']],
+  ['Deuteronomy', ['Kumbukumbu la Torati', 'Kumbukumbu la Sheria', 'Kumbukumbu']],
+  ['Joshua', ['Yoshua']],
+  ['Judges', ['Waamuzi']],
+  ['Ruth', ['Ruthu']],
+  ['1 Samuel', ['1 Samweli']],
+  ['2 Samuel', ['2 Samweli']],
+  ['1 Kings', ['1 Wafalme']],
+  ['2 Kings', ['2 Wafalme']],
+  ['1 Chronicles', ['1 Mambo ya Nyakati', '1 Nyakati']],
+  ['2 Chronicles', ['2 Mambo ya Nyakati', '2 Nyakati']],
+  ['Nehemiah', ['Nehemia']],
+  ['Esther', ['Esta']],
+  ['Job', ['Ayubu']],
+  ['Psalms', ['Zaburi']],
+  ['Proverbs', ['Mithali']],
+  ['Ecclesiastes', ['Mhubiri']],
+  ['Song of Solomon', ['Wimbo Ulio Bora', 'Wimbo Bora', 'Wimbo wa Sulemani']],
+  ['Isaiah', ['Isaya']],
+  ['Jeremiah', ['Yeremia']],
+  ['Lamentations', ['Maombolezo']],
+  ['Ezekiel', ['Ezekieli']],
+  ['Daniel', ['Danieli']],
+  ['Joel', ['Yoeli']],
+  ['Amos', ['Amosi']],
+  ['Obadiah', ['Obadia']],
+  ['Jonah', ['Yona']],
+  ['Micah', ['Mika']],
+  ['Nahum', ['Nahumu']],
+  ['Habakkuk', ['Habakuki']],
+  ['Zephaniah', ['Sefania']],
+  ['Zechariah', ['Zekaria']],
+  ['Matthew', ['Mathayo']],
+  ['Mark', ['Marko']],
+  ['Luke', ['Luka']],
+  ['John', ['Yohana']],
+  ['Acts', ['Matendo ya Mitume', 'Matendo']],
+  ['Romans', ['Warumi']],
+  ['1 Corinthians', ['1 Wakorintho']],
+  ['2 Corinthians', ['2 Wakorintho']],
+  ['Galatians', ['Wagalatia']],
+  ['Ephesians', ['Waefeso']],
+  ['Philippians', ['Wafilipi']],
+  ['Colossians', ['Wakolosai']],
+  ['1 Thessalonians', ['1 Wathesalonike']],
+  ['2 Thessalonians', ['2 Wathesalonike']],
+  ['1 Timothy', ['1 Timotheo']],
+  ['2 Timothy', ['2 Timotheo']],
+  ['Philemon', ['Filemoni']],
+  ['Hebrews', ['Waebrania']],
+  ['James', ['Yakobo']],
+  ['1 Peter', ['1 Petro']],
+  ['2 Peter', ['2 Petro']],
+  ['1 John', ['1 Yohana']],
+  ['2 John', ['2 Yohana']],
+  ['3 John', ['3 Yohana']],
+  ['Jude', ['Yuda']],
+  ['Revelation', ['Ufunuo wa Yohana', 'Ufunuo']]
+]
+for (const [name, aliases] of SWAHILI_NAMES) {
+  for (const alias of aliases) {
+    const key = normalize(alias)
+    if (!BOOK_LOOKUP.has(key)) BOOK_LOOKUP.set(key, name)
+  }
+}
+
+/** The 66 canonical book names in Bible order. */
+export const BOOK_NAMES: readonly string[] = BOOKS.map(([name]) => name)
+
 export function resolveBook(raw: string): string | null {
   return BOOK_LOOKUP.get(normalize(raw)) ?? null
 }
@@ -148,6 +227,8 @@ export interface BibleText {
   name: string
   /** Canonical book name -> chapters -> verses. chapters[0][0] is chapter 1, verse 1. */
   books: Record<string, string[][]>
+  /** How this Bible spells book names (for example "Yohana" for John). Defaults to the English names. */
+  bookLabels?: Record<string, string>
 }
 
 const installed = new Map<string, BibleText>()
@@ -156,25 +237,40 @@ export function registerBible(bible: BibleText): void {
   installed.set(bible.version, bible)
 }
 
+export function unregisterBible(version: string): void {
+  installed.delete(version)
+}
+
 export function installedVersions(): { version: string; name: string }[] {
   return [...installed.values()].map(({ version, name }) => ({ version, name }))
 }
 
 export function lookupPassage(ref: BibleReference, version = 'KJV'): BibleResult | null {
-  const chapter = installed.get(version)?.books[ref.book]?.[ref.chapter - 1]
-  if (!chapter || chapter.length === 0) return null
+  const bible = installed.get(version)
+  const chapter = bible?.books[ref.book]?.[ref.chapter - 1]
+  if (!bible || !chapter || chapter.length === 0) return null
 
   const start = ref.verseStart ?? 1
   const end = Math.min(ref.verseEnd ?? (ref.verseStart === undefined ? chapter.length : start), chapter.length)
   if (start < 1 || start > end) return null
 
+  // Some translations leave verses out on purpose (stored as ''), so skip those.
   const verses = []
-  for (let verse = start; verse <= end; verse++) verses.push({ verse, text: chapter[verse - 1] })
+  for (let verse = start; verse <= end; verse++) {
+    if (chapter[verse - 1].trim() !== '') verses.push({ verse, text: chapter[verse - 1] })
+  }
+  if (verses.length === 0) return null
 
+  const label = bible.bookLabels?.[ref.book] ?? ref.book
   const reference =
     ref.verseStart === undefined
-      ? `${ref.book} ${ref.chapter}`
-      : formatReference({ book: ref.book, chapter: ref.chapter, verseStart: start, verseEnd: end })
+      ? `${label} ${ref.chapter}`
+      : formatReference({
+          book: label,
+          chapter: ref.chapter,
+          verseStart: verses[0].verse,
+          verseEnd: verses[verses.length - 1].verse
+        })
 
-  return { version, book: ref.book, chapter: ref.chapter, reference, verses }
+  return { version, book: ref.book, bookLabel: label, chapter: ref.chapter, reference, verses }
 }

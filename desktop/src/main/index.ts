@@ -1,8 +1,10 @@
 import { app, BrowserWindow, dialog, ipcMain, net, protocol, screen } from 'electron'
+import { readFile, stat } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { IPC } from '../shared/ipc'
 import { isMediaUrl, MEDIA_PROTOCOL } from '../shared/media'
+import { createBibleStore, type BibleStore } from './bibleStore'
 import { createMediaStore, type MediaStore } from './mediaStore'
 import { DEFAULT_OUTPUT, type DisplayInfo, type OutputState } from '../shared/types'
 
@@ -12,6 +14,17 @@ protocol.registerSchemesAsPrivileged([
 ])
 
 let mediaStore: MediaStore
+let bibleStore: BibleStore
+
+const MAX_BIBLE_FILE_BYTES = 30 * 1024 * 1024
+
+function decodeText(buffer: Buffer): string {
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(buffer)
+  } catch {
+    return new TextDecoder('windows-1252').decode(buffer)
+  }
+}
 let operatorWindow: BrowserWindow | null = null
 let outputWindow: BrowserWindow | null = null
 let outputOnSecondary = false
@@ -179,6 +192,29 @@ function registerIpc(): void {
     return typeof id === 'string' ? mediaStore.remove(id) : mediaStore.list()
   })
 
+  ipcMain.handle(IPC.pickBibleFile, async () => {
+    const options: Electron.OpenDialogOptions = {
+      title: 'Choose a Bible file',
+      properties: ['openFile'],
+      filters: [{ name: 'Bible files', extensions: ['txt', 'csv', 'tsv', 'json'] }]
+    }
+    const result = operatorWindow ? await dialog.showOpenDialog(operatorWindow, options) : await dialog.showOpenDialog(options)
+    const path = result.filePaths[0]
+    if (result.canceled || !path) return null
+    try {
+      if ((await stat(path)).size > MAX_BIBLE_FILE_BYTES) return null
+      return { fileName: basename(path), text: decodeText(await readFile(path)) }
+    } catch {
+      return null
+    }
+  })
+
+  ipcMain.handle(IPC.listBibles, () => bibleStore.list())
+  ipcMain.handle(IPC.saveBible, (_event, bible: unknown) => bibleStore.save(bible))
+  ipcMain.handle(IPC.removeBible, (_event, version: unknown) => {
+    return typeof version === 'string' ? bibleStore.remove(version) : undefined
+  })
+
   ipcMain.handle(IPC.getDisplayInfo, () => displayInfo())
 
   ipcMain.handle(IPC.toggleOutput, () => {
@@ -212,6 +248,7 @@ function registerMediaProtocol(): void {
 
 void app.whenReady().then(() => {
   mediaStore = createMediaStore(join(app.getPath('userData'), 'media'))
+  bibleStore = createBibleStore(join(app.getPath('userData'), 'bibles'))
   registerMediaProtocol()
   registerIpc()
   registerScreenEvents()

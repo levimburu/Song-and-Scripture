@@ -1,6 +1,7 @@
 import { IconPlus, IconSearch } from '@tabler/icons-react'
 import { useMemo, useState } from 'react'
 import { formatReference, lookupPassage, parseReference } from '../../shared/bible'
+import type { BibleSummary } from '../../shared/types'
 import { SAMPLE_SONGS } from '../../shared/sample'
 import { itemFromScripture, itemFromSong } from '../../shared/schedule'
 import type { ScheduleItem } from '../../shared/types'
@@ -19,9 +20,18 @@ interface Props {
   onTab: (tab: TrayTab) => void
   onAdd: (item: ScheduleItem) => void
   media: React.ComponentProps<typeof MediaTab>
+  bibles: BiblePickerProps
 }
 
-export function Tray({ tab, onTab, onAdd, media }: Props): React.JSX.Element {
+export interface BiblePickerProps {
+  versions: BibleSummary[]
+  version: string
+  onVersion: (version: string) => void
+  onAddBible: () => void
+  onRemoveBible: (version: string) => void
+}
+
+export function Tray({ tab, onTab, onAdd, media, bibles }: Props): React.JSX.Element {
   return (
     <section className="tray">
       <nav className="tray-tabs" role="tablist">
@@ -33,7 +43,7 @@ export function Tray({ tab, onTab, onAdd, media }: Props): React.JSX.Element {
       </nav>
       <div className="tray-body">
         {tab === 'songs' && <Songs onAdd={onAdd} />}
-        {tab === 'scriptures' && <Scriptures onAdd={onAdd} />}
+        {tab === 'scriptures' && <Scriptures onAdd={onAdd} {...bibles} />}
         {tab === 'media' && <MediaTab {...media} />}
         {tab === 'themes' && <p className="empty">Themes come in a later milestone: fonts, backgrounds and church logo.</p>}
       </div>
@@ -68,18 +78,35 @@ function Songs({ onAdd }: { onAdd: (item: ScheduleItem) => void }): React.JSX.El
   )
 }
 
-function Scriptures({ onAdd }: { onAdd: (item: ScheduleItem) => void }): React.JSX.Element {
+function Scriptures({ onAdd, versions, version, onVersion, onAddBible, onRemoveBible }: { onAdd: (item: ScheduleItem) => void } & BiblePickerProps): React.JSX.Element {
   const [text, setText] = useState('Romans 8:35-39')
   const ref = parseReference(text)
-  const result = ref ? lookupPassage(ref) : null
+  const current = versions.find((v) => v.version === version)
+  const result = ref ? lookupPassage(ref, version) : null
   let note = 'Type a reference, for example John 3:16 or Psalm 23:1-6.'
   if (text.trim() !== '') {
     if (!ref) note = 'That reference was not recognised.'
-    else if (!result) note = `${formatReference(ref)} was not found in the King James Version.`
+    else if (!result) note = `${formatReference(ref)} was not found in ${current?.name ?? version}.`
     else note = `${result.reference}: ${result.verses.length} verse${result.verses.length === 1 ? '' : 's'}`
   }
   return (
     <div className="tray-split">
+      <div className="bible-row">
+        <label>
+          Version
+          <select value={version} onChange={(e) => onVersion(e.target.value)} aria-label="Bible version">
+            {versions.map((v) => (
+              <option key={v.version} value={v.version}>
+                {v.version} – {v.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button className="btn small" onClick={onAddBible}>Add a Bible…</button>
+        {version !== 'KJV' && (
+          <button className="btn small" onClick={() => onRemoveBible(version)}>Remove {version}</button>
+        )}
+      </div>
       <label className="search">
         <IconSearch size={16} />
         <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Book chapter:verse" aria-label="Scripture reference" />

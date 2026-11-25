@@ -22,6 +22,10 @@ import {
 } from '../../shared/state'
 import { isScheduleItems } from '../../shared/validate'
 import type { DisplayInfo, OutputMode, Theme } from '../../shared/types'
+import { installedVersions, registerBible, unregisterBible } from '../../shared/bible'
+import type { BibleFileContents } from '../../shared/types'
+import { isBibleText } from '../../shared/validate'
+import { BibleImportDialog } from './BibleImportDialog'
 import { LivePane, PreviewPane, SchedulePane } from './Panes'
 import { Tray } from './Tray'
 
@@ -61,6 +65,9 @@ export function App(): React.JSX.Element {
   const [display, setDisplay] = useState<DisplayInfo>({ count: 1, outputOpen: false, outputOnSecondary: false })
   const [alertOpen, setAlertOpen] = useState(false)
   const [alertDraft, setAlertDraft] = useState('')
+  const [versions, setVersions] = useState(installedVersions)
+  const [bibleVersion, setBibleVersion] = useState('KJV')
+  const [bibleFile, setBibleFile] = useState<BibleFileContents | null>(null)
 
   const output = useMemo(() => deriveOutput(state), [state])
   const item = previewItem(state)
@@ -93,6 +100,13 @@ export function App(): React.JSX.Element {
       /* storage unavailable: autosave is best effort */
     }
   }, [state.scheduleName, state.items, state.theme, state.outputTheme, state.defaultBackground, state.dim])
+
+  useEffect(() => {
+    void window.api.listBibles().then((list) => {
+      for (const bible of list) if (isBibleText(bible)) registerBible(bible)
+      setVersions(installedVersions())
+    })
+  }, [])
 
   useEffect(() => {
     void window.api.listMedia().then((media) => dispatch({ type: 'setMedia', media }))
@@ -197,7 +211,31 @@ export function App(): React.JSX.Element {
         />
       </main>
 
+      {bibleFile && (
+        <BibleImportDialog
+          file={bibleFile}
+          onClose={() => setBibleFile(null)}
+          onSaved={(version) => {
+            setVersions(installedVersions())
+            setBibleVersion(version)
+            setBibleFile(null)
+          }}
+        />
+      )}
+
       <Tray
+        bibles={{
+          versions,
+          version: bibleVersion,
+          onVersion: setBibleVersion,
+          onAddBible: () => void window.api.pickBibleFile().then((file) => file && setBibleFile(file)),
+          onRemoveBible: (version) =>
+            void window.api.removeBible(version).then(() => {
+              unregisterBible(version)
+              setVersions(installedVersions())
+              setBibleVersion('KJV')
+            })
+        }}
         tab={state.tab}
         onTab={(tab) => dispatch({ type: 'setTab', tab })}
         onAdd={(it) => dispatch({ type: 'addItem', item: it })}

@@ -75,7 +75,7 @@ function Scriptures({ onAdd }: { onAdd: (item: ScheduleItem) => void }): React.J
   let note = 'Type a reference, for example John 3:16 or Psalm 23:1-6.'
   if (text.trim() !== '') {
     if (!ref) note = 'That reference was not recognised.'
-    else if (!result) note = `${formatReference(ref)} is not in the starter text yet. The full Bible arrives in the next milestone.`
+    else if (!result) note = `${formatReference(ref)} was not found in the King James Version.`
     else note = `${result.reference}: ${result.verses.length} verse${result.verses.length === 1 ? '' : 's'}`
   }
   return (

@@ -143,61 +143,38 @@ export function formatReference(ref: BibleReference): string {
   return `${ref.book} ${ref.chapter}:${ref.verseStart}${end}`
 }
 
-type ChapterText = Record<number, string>
+export interface BibleText {
+  version: string
+  name: string
+  /** Canonical book name -> chapters -> verses. chapters[0][0] is chapter 1, verse 1. */
+  books: Record<string, string[][]>
+}
 
-// Starter text so the app can be demonstrated. The full King James Version
-// (public domain) replaces this in the Bible module milestone.
-const SAMPLE_KJV: Record<string, Record<number, ChapterText>> = {
-  John: {
-    3: {
-      16: 'For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.',
-      17: 'For God sent not his Son into the world to condemn the world; but that the world through him might be saved.'
-    }
-  },
-  Romans: {
-    8: {
-      35: 'Who shall separate us from the love of Christ? shall tribulation, or distress, or persecution, or famine, or nakedness, or peril, or sword?',
-      36: 'As it is written, For thy sake we are killed all the day long; we are accounted as sheep for the slaughter.',
-      37: 'Nay, in all these things we are more than conquerors through him that loved us.',
-      38: 'For I am persuaded, that neither death, nor life, nor angels, nor principalities, nor powers, nor things present, nor things to come,',
-      39: 'Nor height, nor depth, nor any other creature, shall be able to separate us from the love of God, which is in Christ Jesus our Lord.'
-    }
-  },
-  Psalms: {
-    23: {
-      1: 'The LORD is my shepherd; I shall not want.',
-      2: 'He maketh me to lie down in green pastures: he leadeth me beside the still waters.',
-      3: 'He restoreth my soul: he leadeth me in the paths of righteousness for his name’s sake.',
-      4: 'Yea, though I walk through the valley of the shadow of death, I will fear no evil: for thou art with me; thy rod and thy staff they comfort me.',
-      5: 'Thou preparest a table before me in the presence of mine enemies: thou anointest my head with oil; my cup runneth over.',
-      6: 'Surely goodness and mercy shall follow me all the days of my life: and I will dwell in the house of the LORD for ever.'
-    }
-  }
+const installed = new Map<string, BibleText>()
+
+export function registerBible(bible: BibleText): void {
+  installed.set(bible.version, bible)
+}
+
+export function installedVersions(): { version: string; name: string }[] {
+  return [...installed.values()].map(({ version, name }) => ({ version, name }))
 }
 
 export function lookupPassage(ref: BibleReference, version = 'KJV'): BibleResult | null {
-  const chapterText = SAMPLE_KJV[ref.book]?.[ref.chapter]
-  if (!chapterText) return null
+  const chapter = installed.get(version)?.books[ref.book]?.[ref.chapter - 1]
+  if (!chapter || chapter.length === 0) return null
 
-  const available = Object.keys(chapterText)
-    .map(Number)
-    .sort((a, b) => a - b)
+  const start = ref.verseStart ?? 1
+  const end = Math.min(ref.verseEnd ?? (ref.verseStart === undefined ? chapter.length : start), chapter.length)
+  if (start < 1 || start > end) return null
 
-  let wanted = available
-  if (ref.verseStart !== undefined) {
-    const start = ref.verseStart
-    const end = ref.verseEnd ?? start
-    wanted = available.filter((verse) => verse >= start && verse <= end)
-  }
-  if (wanted.length === 0) return null
+  const verses = []
+  for (let verse = start; verse <= end; verse++) verses.push({ verse, text: chapter[verse - 1] })
 
-  const verses = wanted.map((verse) => ({ verse, text: chapterText[verse] }))
-  const first = wanted[0]
-  const last = wanted[wanted.length - 1]
   const reference =
     ref.verseStart === undefined
       ? `${ref.book} ${ref.chapter}`
-      : formatReference({ book: ref.book, chapter: ref.chapter, verseStart: first, verseEnd: last })
+      : formatReference({ book: ref.book, chapter: ref.chapter, verseStart: start, verseEnd: end })
 
   return { version, book: ref.book, chapter: ref.chapter, reference, verses }
 }

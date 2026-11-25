@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { formatReference, lookupPassage, parseReference, resolveBook } from './bible'
+import kjv from './data/kjv.json'
 
 describe('resolveBook', () => {
   it('resolves full names, abbreviations and numbered books', () => {
@@ -101,11 +102,68 @@ describe('lookupPassage', () => {
 
   it('trims a range to the verses that exist', () => {
     const result = lookupPassage({ book: 'John', chapter: 3, verseStart: 16, verseEnd: 40 })
-    expect(result?.reference).toBe('John 3:16–17')
+    expect(result?.reference).toBe('John 3:16–36')
+    expect(result?.verses).toHaveLength(21)
   })
 
-  it('returns null when the passage is not in the starter text', () => {
-    expect(lookupPassage({ book: 'Genesis', chapter: 1, verseStart: 1 })).toBeNull()
+  it('returns null for passages that do not exist', () => {
     expect(lookupPassage({ book: 'John', chapter: 3, verseStart: 99 })).toBeNull()
+    expect(lookupPassage({ book: 'Genesis', chapter: 99 })).toBeNull()
+    expect(lookupPassage({ book: 'Genesis', chapter: 0 })).toBeNull()
+    expect(lookupPassage({ book: 'Genesis', chapter: 1, verseStart: 5, verseEnd: 2 })).toBeNull()
+  })
+
+  it('returns null for a version that is not installed', () => {
+    expect(lookupPassage({ book: 'John', chapter: 3, verseStart: 16 }, 'NIV')).toBeNull()
   })
 })
+
+describe('King James Version data', () => {
+  it('contains the whole Bible: 66 books, 1,189 chapters, 31,102 verses', () => {
+    const books = installedBooks()
+    expect(books).toHaveLength(66)
+    expect(books.reduce((n, b) => n + b.length, 0)).toBe(1189)
+    expect(books.reduce((n, b) => n + b.reduce((m, c) => m + c.length, 0), 0)).toBe(31102)
+  })
+
+  it('has no empty verses', () => {
+    expect(installedBooks().every((b) => b.every((c) => c.every((v) => v.trim() !== '')))).toBe(true)
+  })
+
+  it('has no translator margin notes or stray spacing mixed into the verses', () => {
+    const flagged = Object.entries(kjv.books).flatMap(([book, chapters]) =>
+      chapters.flatMap((verses, c) =>
+        verses.flatMap((text, v) => (/…|Heb\.|::| [,.;:!?]|\s{2}|^\s|\s$/.test(text) ? [`${book} ${c + 1}:${v + 1}`] : []))
+      )
+    )
+    expect(flagged).toEqual([])
+  })
+
+  it('has the margin-note verses repaired', () => {
+    expect(lookupPassage({ book: 'Exodus', chapter: 6, verseStart: 2 })?.verses[0].text).toBe(
+      'And God spake unto Moses, and said unto him, I am the LORD:'
+    )
+    expect(lookupPassage({ book: 'Jonah', chapter: 1, verseStart: 16 })?.verses[0].text).toMatch(/and made vows\.$/)
+  })
+
+  it('has the right text at well-known places', () => {
+    expect(lookupPassage({ book: 'Genesis', chapter: 1, verseStart: 1 })?.verses[0].text).toBe(
+      'In the beginning God created the heaven and the earth.'
+    )
+    expect(lookupPassage({ book: 'John', chapter: 3, verseStart: 16 })?.verses[0].text).toMatch(/^For God so loved the world/)
+    expect(lookupPassage({ book: 'Psalms', chapter: 119 })?.verses).toHaveLength(176)
+    expect(lookupPassage({ book: 'Revelation', chapter: 22, verseStart: 21 })?.verses[0].text).toMatch(/grace of our Lord Jesus Christ/)
+    expect(lookupPassage({ book: '3 John', chapter: 1 })?.verses).toHaveLength(14)
+  })
+
+  it('every book name the parser knows is in the Bible', () => {
+    for (const name of ['1 Samuel', 'Song of Solomon', '2 Thessalonians', 'Jude']) {
+      const ref = parseReference(`${name} 1`)
+      expect(ref && lookupPassage(ref)).not.toBeNull()
+    }
+  })
+})
+
+function installedBooks(): string[][][] {
+  return Object.values(kjv.books)
+}

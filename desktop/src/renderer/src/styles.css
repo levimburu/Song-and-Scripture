@@ -301,3 +301,18 @@ select.mini.wide { min-width: 200px; }
 .colour-pick input[type='color'] { width: 40px; height: 28px; padding: 0; border: 1px solid var(--border-control); border-radius: 6px; background: none; cursor: pointer; }
 .themes-preview { display: grid; gap: 6px; align-content: start; }
 .themes-preview .screen-frame { --frame-h: 202px; }
+
+/* Colour palette, like Word */
+.colour-btn { gap: 8px; }
+.swatch-current { width: 18px; height: 18px; border-radius: 3px; border: 1px solid var(--border-stronger, #888); display: inline-flex; align-items: center; justify-content: center; }
+.auto-mark { font-size: 10px; font-weight: 700; color: var(--text-2); }
+.palette { position: fixed; z-index: 60; width: 262px; padding: 10px; background: var(--panel); border: 1px solid var(--border-control); border-radius: 8px; display: grid; gap: 6px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); }
+.palette-title { font-size: 11px; color: var(--text-2); }
+.palette-grid { display: grid; grid-template-columns: repeat(10, 22px); gap: 2px; }
+.swatch { width: 22px; height: 22px; padding: 0; border: 1px solid rgba(128, 128, 128, 0.45); border-radius: 2px; cursor: pointer; }
+.swatch:hover { outline: 2px solid var(--blue); outline-offset: 0; }
+.swatch.chosen { outline: 2px solid var(--blue); outline-offset: 1px; }
+.palette-auto { text-align: left; background: var(--bg); border: 1px solid var(--border-control); border-radius: 6px; padding: 5px 8px; cursor: pointer; }
+.palette-auto.chosen { border-color: var(--blue); }
+.palette-more { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 8px; cursor: pointer; }
+.palette-more input { width: 36px; height: 24px; padding: 0; border: 0; background: none; cursor: pointer; }

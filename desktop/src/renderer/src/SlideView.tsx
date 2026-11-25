@@ -54,7 +54,7 @@ export function SlideView({ output, compact = false, animate = false }: Props): 
       else high = mid - 1
     }
     el.style.fontSize = `${low}px`
-  }, [lines, isScripture, textStyle.maxSize, textStyle.font, textStyle.bold])
+  }, [lines, isScripture, textStyle.maxSize, textStyle.font, textStyle.bold, scale])
 
   const bg =
     (output.mode === 'slide' || output.mode === 'clear') && output.background && output.background.url !== failedUrl

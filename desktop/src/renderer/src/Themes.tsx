@@ -1,5 +1,5 @@
 import { IconRestore } from '@tabler/icons-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   DEFAULT_STYLE,
   FONTS,
@@ -60,13 +60,95 @@ function FontSelect({ value, onChange, label }: { value: string; onChange: (v: s
   )
 }
 
+const THEME_BASE = ['#ffffff', '#000000', '#e7e6e6', '#44546a', '#4472c4', '#ed7d31', '#a5a5a5', '#ffc000', '#5b9bd5', '#70ad47']
+const STANDARD = ['#c00000', '#ff0000', '#ffc000', '#ffff00', '#92d050', '#00b050', '#00b0f0', '#0070c0', '#002060', '#7030a0']
+
+function mix(hex: string, target: number, amount: number): string {
+  const n = parseInt(hex.slice(1), 16)
+  const ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((c) => Math.round(c + (target - c) * amount))
+  return `#${ch.map((c) => c.toString(16).padStart(2, '0')).join('')}`
+}
+
+// Like Word: the main colours on top, then lighter and darker shades of each, then the standard colours.
+const SHADES: string[][] = [
+  THEME_BASE,
+  ...[0.8, 0.6, 0.4].map((a) => THEME_BASE.map((c) => mix(c, 255, a))),
+  ...[0.25, 0.5].map((a) => THEME_BASE.map((c) => mix(c, 0, a)))
+]
+
 function ColourPick({ value, onChange, label }: { value: string | null; onChange: (v: string | null) => void; label: string }): React.JSX.Element {
+  const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState({ left: 0, top: 0 })
+  const button = useRef<HTMLButtonElement>(null)
+  const panel = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const close = (e: Event): void => {
+      if (e.target instanceof Node && (panel.current?.contains(e.target) || button.current?.contains(e.target))) return
+      setOpen(false)
+    }
+    const key = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') {
+        e.stopPropagation()
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', close)
+    document.addEventListener('keydown', key, true)
+    return () => {
+      document.removeEventListener('mousedown', close)
+      document.removeEventListener('keydown', key, true)
+    }
+  }, [open])
+
+  function toggle(): void {
+    const r = button.current?.getBoundingClientRect()
+    if (r) {
+      // Open upwards when there is no room below, so the palette is never cut off.
+      const height = 330
+      setPos({ left: Math.min(r.left, window.innerWidth - 270), top: r.bottom + height > window.innerHeight ? Math.max(8, r.top - height - 4) : r.bottom + 4 })
+    }
+    setOpen((v) => !v)
+  }
+
+  const pick = (c: string | null): void => {
+    onChange(c)
+    setOpen(false)
+  }
+  const Swatch = ({ c }: { c: string }): React.JSX.Element => (
+    <button className={`swatch${value === c ? ' chosen' : ''}`} style={{ background: c }} onClick={() => pick(c)} aria-label={`${label} ${c}`} title={c} />
+  )
+
   return (
     <span className="colour-pick">
-      <input type="color" value={value ?? '#ffffff'} onChange={(e) => onChange(e.target.value)} aria-label={label} />
-      <button className={`btn small${value === null ? ' on' : ''}`} onClick={() => onChange(null)} aria-pressed={value === null}>
-        Automatic
+      <button ref={button} className="btn small colour-btn" onClick={toggle} aria-label={label} aria-expanded={open}>
+        <span className="swatch-current" style={{ background: value ?? 'transparent' }}>
+          {value === null && <span className="auto-mark">A</span>}
+        </span>
+        {value === null ? 'Automatic' : value.toUpperCase()}
       </button>
+      {open && (
+        <div ref={panel} className="palette" style={{ left: pos.left, top: pos.top }} role="dialog" aria-label={`${label} palette`}>
+          <button className={`palette-auto${value === null ? ' chosen' : ''}`} onClick={() => pick(null)}>Automatic</button>
+          <div className="palette-title">Theme colours</div>
+          <div className="palette-grid">
+            {SHADES.flat().map((c, i) => (
+              <Swatch key={`${c}${i}`} c={c} />
+            ))}
+          </div>
+          <div className="palette-title">Standard colours</div>
+          <div className="palette-grid">
+            {STANDARD.map((c) => (
+              <Swatch key={c} c={c} />
+            ))}
+          </div>
+          <label className="palette-more">
+            More colours…
+            <input type="color" value={value ?? '#ffffff'} onChange={(e) => onChange(e.target.value)} aria-label={`${label} custom`} />
+          </label>
+        </div>
+      )}
     </span>
   )
 }

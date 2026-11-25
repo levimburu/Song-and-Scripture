@@ -147,7 +147,8 @@ export function reducer(state: AppState, action: Action): AppState {
     }
     case 'goLive': {
       const item = previewItem(state)
-      if (!item || item.slides.length === 0) return state
+      // With nothing selected the preview is just the background, so that is what goes on the screen.
+      if (!item || item.slides.length === 0) return { ...state, mode: 'clear', live: null }
       return {
         ...state,
         mode: 'slide',

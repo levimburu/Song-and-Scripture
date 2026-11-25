@@ -77,9 +77,10 @@ describe('going live', () => {
     expect(deriveOutput(state).slide?.label).toBe('Verse 2')
   })
 
-  it('does nothing when there is no preview item', () => {
-    const state = reducer(freshState(), { type: 'newSchedule' })
-    expect(reducer(state, { type: 'goLive' })).toBe(state)
+  it('puts only the background on the screen when there is no preview item', () => {
+    const state = reducer(reducer(freshState(), { type: 'newSchedule' }), { type: 'goLive' })
+    expect(state.live).toBeNull()
+    expect(state.mode).toBe('clear')
   })
 
   it('steps through live slides and clamps at both ends', () => {

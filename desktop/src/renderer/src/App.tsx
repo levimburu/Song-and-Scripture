@@ -172,6 +172,11 @@ export function App(): React.JSX.Element {
     }
   }, [bgOpen])
 
+  // Go live is only greyed out when what the preview shows is already on the screen.
+  const alreadyLive = item
+    ? state.mode === 'slide' && state.live?.itemId === item.id && state.live.index === state.previewIndex && state.live.background === effectiveBackground(item, state.defaultBackground)
+    : state.mode === 'clear' && state.live === null
+
   const addMedia = (): void => void window.api.addMedia().then((media) => dispatch({ type: 'setMedia', media }))
 
   let projector = { cls: 'amber', text: 'Projector: output closed' }
@@ -223,7 +228,7 @@ export function App(): React.JSX.Element {
           {modeButton('logo', 'Logo', <IconPhoto size={18} />)}
           {modeButton('black', 'Black', <IconSquareFilled size={18} />)}
           {modeButton('clear', 'Clear', <IconEraser size={18} />)}
-          <button className="btn go-live" onClick={() => dispatch({ type: 'goLive' })} disabled={!item || item.slides.length === 0}>
+          <button className="btn go-live" onClick={() => dispatch({ type: 'goLive' })} disabled={alreadyLive}>
             <IconPlayerPlayFilled size={18} /> Go live
           </button>
         </div>

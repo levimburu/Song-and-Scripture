@@ -188,3 +188,14 @@ select { background: var(--bg); border: 1px solid var(--border-control); border-
 .verse-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .search input { max-width: 640px; }
 .scripture-result { max-width: 900px; }
+
+.bible-row label.grow { flex: 1; min-width: 180px; }
+.bible-row label { display: grid; gap: 2px; font-size: 11px; color: var(--muted, #9aa); }
+.bible-row input.pick { font-size: 15px; padding: 6px 8px; }
+.bible-row input.book { width: 170px; }
+.bible-row input.num { width: 64px; text-align: center; }
+.verse-list { max-height: none; flex: 1; min-height: 80px; white-space: normal; }
+.verse-text { white-space: normal; overflow: visible; }
+.verse-row { align-items: baseline; }
+.tray-split { display: flex; flex-direction: column; gap: 8px; }
+.verse-list { overflow-y: auto; }

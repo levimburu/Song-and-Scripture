@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  completeBook,
+  chapterCountFor,
   BOOK_NAMES,
   installedVersions,
   lookupPassage,
@@ -232,5 +234,18 @@ describe('searching verses by words', () => {
   it('limits the number of results and handles missing versions', () => {
     expect(searchVerses('the', 'KJV', 5)).toHaveLength(5)
     expect(searchVerses('the', 'NOPE')).toEqual([])
+  })
+})
+
+describe('picking a book by its first letters', () => {
+  it('completes like EasyWorship', () => {
+    expect(completeBook('g')?.book).toBe('Genesis')
+    expect(completeBook('jo')?.book).toBe('Joshua')
+    expect(completeBook('joh')?.book).toBe('John')
+    expect(completeBook('1j')?.book).toBe('1 John')
+    expect(completeBook('1 jo')?.book).toBe('1 John')
+    expect(completeBook('rev')?.label).toBe('Revelation')
+    expect(completeBook('zzz')).toBeNull()
+    expect(chapterCountFor('Psalms')).toBe(150)
   })
 })

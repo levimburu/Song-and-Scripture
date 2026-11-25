@@ -331,3 +331,36 @@ export function searchVerses(query: string, version = 'KJV', limit = 30): VerseH
   }
   return hits
 }
+
+/** How the given Bible spells a book (e.g. "Yohana"); English when it has no labels. */
+export function bookLabelFor(book: string, version = 'KJV'): string {
+  return installed.get(version)?.bookLabels?.[book] ?? book
+}
+
+/** Number of chapters the Bible has for a book (0 when it is missing). */
+export function chapterCountFor(book: string, version = 'KJV'): number {
+  return installed.get(version)?.books[book]?.length ?? 0
+}
+
+const squash = (s: string): string => s.toLowerCase().replace(/[^a-z0-9]/g, '')
+
+/**
+ * Finds the first book (in Bible order) whose name starts with what was typed, the way
+ * EasyWorship does it: "j" -> Joshua, "jo" -> Joshua, "joh" -> John, "1j" -> 1 John.
+ * Matches the Bible's own spelling first, then the English name and short forms.
+ */
+export function completeBook(typed: string, version = 'KJV'): { book: string; label: string } | null {
+  const key = squash(typed)
+  if (key === '') return null
+  const bible = installed.get(version)
+  const present = BOOKS.filter(([name]) => bible?.books[name])
+  for (const [name] of present) {
+    const label = bible?.bookLabels?.[name] ?? name
+    if (squash(label).startsWith(key)) return { book: name, label }
+  }
+  for (const [name] of present) {
+    if (squash(name).startsWith(key)) return { book: name, label: bible?.bookLabels?.[name] ?? name }
+  }
+  const resolved = resolveBook(typed)
+  return resolved && bible?.books[resolved] ? { book: resolved, label: bible?.bookLabels?.[resolved] ?? resolved } : null
+}

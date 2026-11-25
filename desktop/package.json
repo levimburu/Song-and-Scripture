@@ -1,0 +1,28 @@
+{
+  "name": "song-and-scripture-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Church presentation software for Bible verses, song lyrics and video. Works offline.",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@tabler/icons-react": "^3.0.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.3.3",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "electron": "^45.5.0",
+    "electron-vite": "^6.0.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "typescript": "^5.9.0",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.2"
+  }
+}

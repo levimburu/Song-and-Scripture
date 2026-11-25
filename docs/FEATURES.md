@@ -6,6 +6,8 @@ Priority tags: **Core** = version 1, **Next** = soon after, **Later** = nice to 
 - **Core:** Operator screen (control) plus clean audience screen (projector/TV) on a second display
 - **Core:** Live "go live / clear / black / logo" buttons
 - **Core:** Preview pane showing what's next before it goes live
+- **Core:** Light and dark themes for the operator screen and the audience screen, set separately
+- **Next:** Alerts: short on-screen messages (for example "Parents to the nursery")
 - **Next:** Multiple outputs (main hall, overflow room, stage confidence monitor showing next lyric line)
 - **Later:** Lower-thirds (speaker name, announcements) overlaid on video
 
@@ -25,11 +27,13 @@ Priority tags: **Core** = version 1, **Next** = soon after, **Later** = nice to 
 - **Core:** Paste or import lyrics (the church supplies its own, which avoids copyright problems)
 - **Next:** Song arrangement ordering (verse, chorus, verse, chorus, bridge)
 - **Next:** Import from text, Word or PowerPoint files
+- **Next:** Import songs from other presentation software, if the file formats allow it
 - **Later:** Chord sheets and key transposition for the band
 
 ## 4. Video and media
 - **Core:** Play video and audio files on the audience screen
 - **Core:** Background loops and still images behind lyrics and verses
+- **Core:** Warning on a schedule item when its media file is missing
 - **Next:** Live camera input (HDMI capture or webcam) shown on screen
 - **Next:** Streaming out to YouTube/Facebook (RTMP) with the overlays included
 - **Later:** Countdown timers (service start, offering time)
@@ -37,6 +41,7 @@ Priority tags: **Core** = version 1, **Next** = soon after, **Later** = nice to 
 ## 5. Service planner (order of service)
 - **Core:** Build a service playlist (song, verse, announcement, video, song)
 - **Core:** Save, reuse and duplicate past services as templates
+- **Core:** Service info slide with title, speaker, theme and verse fields
 - **Next:** Drag-and-drop reordering during the service
 - **Later:** Print or export the run sheet
 
@@ -64,6 +69,6 @@ Priority tags: **Core** = version 1, **Next** = soon after, **Later** = nice to 
 - **Later:** Auto-update, plus a template/theme marketplace
 
 ## 10. Content to source
-- Public-domain Bible versions in English and Swahili
+- Public-domain Bible versions in English and Swahili (check the licence of each Swahili version before bundling)
 - A starter pack of public-domain hymns (optional)
 - Default backgrounds and themes (royalty-free)

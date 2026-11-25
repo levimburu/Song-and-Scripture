@@ -255,6 +255,9 @@ export function App(): React.JSX.Element {
           onRemoveSegment={(id) => dispatch({ type: 'removeSegment', id })}
           onMoveSegment={(id, delta) => dispatch({ type: 'moveSegment', id, delta })}
           onActivate={(id) => dispatch({ type: 'setActiveSegment', id })}
+          fillSlotId={state.fillSlotId}
+          onAddSlot={(hint) => dispatch({ type: 'addSlot', hint })}
+          onNewWeek={() => dispatch({ type: 'newWeek' })}
         />
         <PreviewPane
           item={item}

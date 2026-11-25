@@ -1,7 +1,7 @@
 import { sanitizeStyle, type DisplayStyle } from './style'
 import { mediaUrl } from './media'
 import { makeSampleSchedule } from './sample'
-import { MAX_SEGMENTS, MAX_SEGMENT_NAME, moveSegment, moveWithinSegment, newSegment } from './plan'
+import { MAX_SEGMENTS, MAX_SEGMENT_NAME, moveSegment, moveWithinSegment, newSegment, newSlot, startNewWeek } from './plan'
 import {
   DEFAULT_DIM,
   type MediaFile,
@@ -11,6 +11,7 @@ import {
   type ScheduleItem,
   type Segment,
   type Slide,
+  type SlotHint,
   type Theme
 } from './types'
 
@@ -34,6 +35,8 @@ export interface AppState {
   segments: Segment[]
   /** New items go into this segment. */
   activeSegmentId: string | null
+  /** The blank spot the next song, scripture or entry will fill. */
+  fillSlotId: string | null
   previewItemId: string | null
   /** Something picked from a tray (a verse, say) and waiting in the preview. Not part of the schedule. */
   staged: ScheduleItem | null
@@ -78,6 +81,8 @@ export type Action =
   | { type: 'moveSegment'; id: string; delta: number }
   | { type: 'setActiveSegment'; id: string | null }
   | { type: 'moveItem'; id: string; delta: number }
+  | { type: 'addSlot'; hint: SlotHint }
+  | { type: 'newWeek' }
   | { type: 'newSchedule' }
   | { type: 'loadSchedule'; name: string; items: ScheduleItem[] }
 
@@ -102,6 +107,7 @@ export function createInitialState(persisted?: Persisted | null): AppState {
     items,
     segments: persisted?.segments ?? [],
     activeSegmentId: persisted?.activeSegmentId ?? null,
+    fillSlotId: null,
     previewItemId: items[0]?.id ?? null,
     staged: null,
     previewIndex: 0,
@@ -159,9 +165,15 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'selectItem': {
       const item = state.items.find((candidate) => candidate.id === action.id)
       if (!item) return state
+      if (item.slot) {
+        // A blank spot: the next thing picked in its tray fills it.
+        const tab = item.slot === 'song' ? 'songs' : item.slot === 'scripture' ? 'scriptures' : 'program'
+        return { ...state, fillSlotId: item.id, tab }
+      }
       return {
         ...state,
         staged: null,
+        fillSlotId: null,
         previewItemId: item.id,
         previewIndex: clamp(action.index ?? 0, item.slides.length)
       }
@@ -284,7 +296,14 @@ export function reducer(state: AppState, action: Action): AppState {
     }
     case 'setTab':
       return { ...state, tab: action.tab }
-    case 'addItem':
+    case 'addItem': {
+      const slot = state.fillSlotId
+        ? state.items.find((it) => it.id === state.fillSlotId && it.slot && it.type === action.item.type)
+        : undefined
+      if (slot) {
+        const filled: ScheduleItem = { ...action.item, ...(slot.segmentId ? { segmentId: slot.segmentId } : {}) }
+        return { ...state, items: state.items.map((it) => (it.id === slot.id ? filled : it)), fillSlotId: null, staged: null, previewItemId: filled.id, previewIndex: 0 }
+      }
       return {
         ...state,
         items: [...state.items, state.activeSegmentId && state.segments.some((s) => s.id === state.activeSegmentId) ? { ...action.item, segmentId: state.activeSegmentId } : action.item],
@@ -292,11 +311,20 @@ export function reducer(state: AppState, action: Action): AppState {
         previewItemId: action.item.id,
         previewIndex: 0
       }
+    }
+    case 'addSlot': {
+      const segmentId = state.activeSegmentId && state.segments.some((x) => x.id === state.activeSegmentId) ? state.activeSegmentId : undefined
+      return { ...state, items: [...state.items, newSlot(action.hint, segmentId)] }
+    }
+    case 'newWeek': {
+      const items = startNewWeek(state.items)
+      return { ...state, items, staged: null, fillSlotId: null, previewItemId: items.find((it) => !it.slot)?.id ?? null, previewIndex: 0 }
+    }
     case 'removeItem': {
       const index = state.items.findIndex((item) => item.id === action.id)
       if (index === -1) return state
       const items = state.items.filter((item) => item.id !== action.id)
-      if (state.previewItemId !== action.id) return { ...state, items }
+      if (state.previewItemId !== action.id) return { ...state, items, fillSlotId: state.fillSlotId === action.id ? null : state.fillSlotId }
       const neighbour = items[Math.min(index, items.length - 1)]
       return { ...state, items, staged: null, previewItemId: neighbour?.id ?? null, previewIndex: 0 }
     }

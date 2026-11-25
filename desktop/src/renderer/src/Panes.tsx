@@ -14,8 +14,8 @@ import {
   IconVideo
 } from '@tabler/icons-react'
 import { useEffect, useRef, useState } from 'react'
-import { DEFAULT_DIM, type ItemType, type OutputBackground, type OutputState, type ScheduleItem, type Segment, type Slide, type Theme } from '../../shared/types'
-import { groupItems } from '../../shared/plan'
+import { DEFAULT_DIM, type ItemType, type OutputBackground, type OutputState, type ScheduleItem, type Segment, type Slide, type SlotHint, type Theme } from '../../shared/types'
+import { groupItems, openSlots, slotLabel } from '../../shared/plan'
 import { DEFAULT_STYLE, type DisplayStyle } from '../../shared/style'
 import { SlideView } from './SlideView'
 
@@ -49,6 +49,9 @@ interface ScheduleProps {
   onRemoveSegment: (id: string) => void
   onMoveSegment: (id: string, delta: number) => void
   onActivate: (id: string | null) => void
+  fillSlotId: string | null
+  onAddSlot: (hint: SlotHint) => void
+  onNewWeek: () => void
 }
 
 export function SchedulePane(props: ScheduleProps): React.JSX.Element {
@@ -57,6 +60,8 @@ export function SchedulePane(props: ScheduleProps): React.JSX.Element {
   const [newName, setNewName] = useState('')
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null)
   const [confirmId, setConfirmId] = useState<string | null>(null)
+  const [confirmWeek, setConfirmWeek] = useState(false)
+  const open = openSlots(items)
   const groups = groupItems(items, segments)
   let number = 0
 
@@ -70,7 +75,7 @@ export function SchedulePane(props: ScheduleProps): React.JSX.Element {
     <section className="pane schedule">
       <header className="pane-head">
         <h2>Schedule</h2>
-        <span className="muted">{name}</span>
+        <span className="muted">{open > 0 ? `${open} still to choose` : name}</span>
       </header>
       <ol className="schedule-list">
         {items.length === 0 && segments.length === 0 && <li className="empty">Add songs and scriptures from the tray below, or add a segment to plan the service.</li>}
@@ -123,10 +128,10 @@ export function SchedulePane(props: ScheduleProps): React.JSX.Element {
                   const selected = item.id === selectedId
                   const live = item.id === liveId
                   return (
-                    <li key={item.id} className={`schedule-row${selected ? ' selected' : ''}${live ? ' is-live' : ''}`} onClick={() => props.onSelect(item.id)}>
+                    <li key={item.id} className={`schedule-row${selected ? ' selected' : ''}${live ? ' is-live' : ''}${item.slot ? ' slot' : ''}${props.fillSlotId === item.id ? ' filling' : ''}`} onClick={() => props.onSelect(item.id)}>
                       <span className="row-num">{number}</span>
                       <Icon size={18} className={`row-icon type-${item.type}`} />
-                      <span className="row-title">{item.title}</span>
+                      <span className="row-title">{item.slot ? `${item.title}: choose one` : item.title}</span>
                       {(item.status === 'missing' || backgroundMissingIds.has(item.id)) && (
                         <span className="row-warn" title={item.status === 'missing' ? 'Media file missing' : 'Background file missing'}>
                           <IconAlertTriangle size={16} />
@@ -147,6 +152,21 @@ export function SchedulePane(props: ScheduleProps): React.JSX.Element {
         })}
       </ol>
       <div className="seg-add">
+        <select className="mini" value="" aria-label="Add a blank spot" onChange={(e) => { if (e.target.value) props.onAddSlot(e.target.value as SlotHint) }}>
+          <option value="">Add a blank spot…</option>
+          {(['song', 'scripture', 'program'] as const).map((h) => (
+            <option key={h} value={h}>{slotLabel(h)}</option>
+          ))}
+        </select>
+        {confirmWeek ? (
+          <button className="btn small danger" autoFocus onBlur={() => setConfirmWeek(false)} onClick={() => { props.onNewWeek(); setConfirmWeek(false) }}>
+            Clear songs and scriptures?
+          </button>
+        ) : (
+          <button className="btn small" onClick={() => setConfirmWeek(true)} title="Keep the plan, empty the songs, scriptures and program entries">
+            New week
+          </button>
+        )}
         {adding ? (
           <input
             className="seg-input"

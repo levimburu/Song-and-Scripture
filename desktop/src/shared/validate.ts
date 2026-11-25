@@ -49,7 +49,8 @@ export function isScheduleItem(value: unknown): value is ScheduleItem {
     Array.isArray(value.slides) &&
     value.slides.every(isSlide) &&
     (value.background === undefined || value.background === null || typeof value.background === 'string') &&
-    (value.segmentId === undefined || typeof value.segmentId === 'string')
+    (value.segmentId === undefined || typeof value.segmentId === 'string') &&
+    (value.slot === undefined || value.slot === 'song' || value.slot === 'scripture' || value.slot === 'program')
   )
 }
 

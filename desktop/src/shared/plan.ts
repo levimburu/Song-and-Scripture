@@ -1,5 +1,5 @@
 import { uid } from './ids'
-import type { ScheduleItem, Segment } from './types'
+import type { ScheduleItem, Segment, SlotHint } from './types'
 
 export const MAX_SEGMENTS = 30
 export const MAX_SEGMENT_NAME = 60
@@ -53,4 +53,46 @@ export function moveWithinSegment(items: ScheduleItem[], segments: Segment[], id
   const next = [...items]
   ;[next[a], next[b]] = [next[b], next[a]]
   return next
+}
+
+const SLOT_LABEL: Record<SlotHint, string> = { song: 'Song', scripture: 'Scripture', program: 'Program entry' }
+
+export function slotLabel(hint: SlotHint): string {
+  return SLOT_LABEL[hint]
+}
+
+/** A blank spot in the plan, to be filled with a song, a scripture or a program entry. */
+export function newSlot(hint: SlotHint, segmentId?: string): ScheduleItem {
+  const item: ScheduleItem = {
+    id: uid('slot'),
+    type: hint === 'song' ? 'song' : hint === 'scripture' ? 'scripture' : 'announcement',
+    title: SLOT_LABEL[hint],
+    slides: [],
+    status: 'ready',
+    slot: hint
+  }
+  return segmentId ? { ...item, segmentId } : item
+}
+
+function hintOf(item: ScheduleItem): SlotHint | null {
+  if (item.slot) return item.slot
+  if (item.type === 'song') return 'song'
+  if (item.type === 'scripture') return 'scripture'
+  if (item.type === 'announcement') return 'program'
+  return null
+}
+
+/**
+ * Getting ready for next Sunday: songs, scriptures and program entries go back to blank spots,
+ * while fixed things (welcome, offering, videos, posters) stay as they are.
+ */
+export function startNewWeek(items: ScheduleItem[]): ScheduleItem[] {
+  return items.map((item) => {
+    const hint = hintOf(item)
+    return hint ? newSlot(hint, item.segmentId) : item
+  })
+}
+
+export function openSlots(items: ScheduleItem[]): number {
+  return items.filter((item) => item.slot !== undefined).length
 }

@@ -25,7 +25,11 @@ export interface ScheduleItem {
   background?: string | null
   /** The part of the service this item belongs to. */
   segmentId?: string
+  /** A blank spot to fill each week (a song, a scripture or a program entry). It has no slides until it is filled. */
+  slot?: SlotHint
 }
+
+export type SlotHint = 'song' | 'scripture' | 'program'
 
 /** A named part of the service, such as Morning Prayers or Sermon. Each church makes its own. */
 export interface Segment {

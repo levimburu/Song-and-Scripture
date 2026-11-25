@@ -350,3 +350,9 @@ select.mini.wide { min-width: 200px; }
 .seg-input { background: var(--bg); border: 1px solid var(--border-control); border-radius: 6px; padding: 5px 8px; width: 100%; text-transform: none; letter-spacing: 0; font-weight: 500; color: var(--text); }
 .seg-add { padding: 8px 0 0; }
 .schedule-list { overflow-x: hidden; } .seg-group { min-width: 0; }
+
+.schedule-row.slot { border: 1px dashed var(--border-control); color: var(--text-2); }
+.schedule-row.slot .row-icon { opacity: 0.6; }
+.schedule-row.filling { border-color: var(--blue); color: var(--text); }
+.seg-add { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.seg-add .seg-input { flex: 1 1 100%; }

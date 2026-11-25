@@ -165,38 +165,40 @@ export function Songs({ onAdd, onShowNow, preview }: Props): React.JSX.Element {
       <div className="songs-right">
         {song ? (
           <>
-            <div className="scripture-result">
-              <strong>{song.title}</strong>
+            <div className="song-head">
+              <strong>
+                {song.title}
+                <span className="count">{slides.length} screen{slides.length === 1 ? '' : 's'}</span>
+              </strong>
               <span className="scripture-actions">
+                <select className="mini" value={lines} onChange={(e) => setLines(Number(e.target.value))} aria-label="Lines per screen">
+                  <option value={WHOLE_SECTION}>Whole paragraph</option>
+                  <option value={1}>1 line</option>
+                  <option value={2}>2 lines</option>
+                  <option value={3}>3 lines</option>
+                  <option value={4}>4 lines</option>
+                </select>
                 <button className="btn small go-live" onClick={() => show()}>
                   <IconPlayerPlayFilled size={14} /> Show now
                 </button>
                 <button className="btn small" onClick={() => onAdd(itemFromSong(song.title, song.lyrics, lines))}>
-                  <IconPlus size={14} /> Add to schedule
+                  <IconPlus size={14} /> Add
                 </button>
                 <button
                   className="btn small"
                   onClick={() => setEditing({ id: song.id, title: song.title, lyrics: song.lyrics, lines })}
+                  aria-label="Edit song"
                 >
                   <IconEdit size={14} /> Edit
                 </button>
                 {confirmDelete ? (
-                  <button className="btn small danger" onClick={remove}>Click again to delete</button>
+                  <button className="btn small danger" onClick={remove}>Delete?</button>
                 ) : (
                   <button className="btn small" onClick={() => setConfirmDelete(true)} aria-label="Delete song">
                     <IconTrash size={14} />
                   </button>
                 )}
               </span>
-            </div>
-            <div className="lines-row">
-              <span>Each screen shows</span>
-              {[WHOLE_SECTION, 1, 2, 3, 4].map((n) => (
-                <button key={n} className={`btn small${lines === n ? ' on' : ''}`} onClick={() => setLines(n)} aria-pressed={lines === n}>
-                  {n === WHOLE_SECTION ? 'Whole paragraph' : n === 1 ? '1 line' : `${n} lines`}
-                </button>
-              ))}
-              <span className="muted">at a time. {slides.length} screen{slides.length === 1 ? '' : 's'}.</span>
             </div>
             <ul className="verse-list song-slides" aria-label="Sections">
               {slides.map((slide, i) => (

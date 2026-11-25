@@ -25,7 +25,7 @@ export function Songs({ onAdd, onShowNow }: Props): React.JSX.Element {
   const [query, setQuery] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [pickedSlide, setPickedSlide] = useState(0)
-  const [editing, setEditing] = useState<{ id: string | null; title: string; lyrics: string } | null>(null)
+  const [editing, setEditing] = useState<{ id: string | null; title: string; lyrics: string; lines: number } | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const listRef = useRef<HTMLUListElement>(null)
 
@@ -67,10 +67,10 @@ export function Songs({ onAdd, onShowNow }: Props): React.JSX.Element {
     const title = editing.title.trim()
     if (title === '' || editing.lyrics.trim() === '') return
     if (editing.id) {
-      setSongs((all) => all.map((s) => (s.id === editing.id ? { ...s, title, lyrics: editing.lyrics.replace(/\r\n?/g, '\n').trim() } : s)))
+      setSongs((all) => all.map((s) => (s.id === editing.id ? { ...s, title, lyrics: editing.lyrics.replace(/\r\n?/g, '\n').trim(), linesPerScreen: editing.lines } : s)))
       setSelectedId(editing.id)
     } else {
-      const created = newSong(title, editing.lyrics)
+      const created = { ...newSong(title, editing.lyrics), linesPerScreen: editing.lines }
       setSongs((all) => [...all, created])
       setSelectedId(created.id)
       setQuery('')
@@ -99,7 +99,7 @@ export function Songs({ onAdd, onShowNow }: Props): React.JSX.Element {
     }
   }
 
-  const stanzaCount = editing ? splitLyrics(editing.lyrics, { maxLines: lines }).length : 0
+  const stanzaCount = editing ? splitLyrics(editing.lyrics, { maxLines: editing.lines }).length : 0
 
   return (
     <div className="songs">
@@ -120,7 +120,7 @@ export function Songs({ onAdd, onShowNow }: Props): React.JSX.Element {
               autoFocus
             />
           </label>
-          <button className="btn small" onClick={() => setEditing({ id: null, title: '', lyrics: '' })}>
+          <button className="btn small" onClick={() => setEditing({ id: null, title: '', lyrics: '', lines: 1 })}>
             <IconPlus size={14} /> New song
           </button>
         </div>
@@ -156,7 +156,7 @@ export function Songs({ onAdd, onShowNow }: Props): React.JSX.Element {
                 </button>
                 <button
                   className="btn small"
-                  onClick={() => setEditing({ id: song.id, title: song.title, lyrics: song.lyrics })}
+                  onClick={() => setEditing({ id: song.id, title: song.title, lyrics: song.lyrics, lines })}
                 >
                   <IconEdit size={14} /> Edit
                 </button>
@@ -222,10 +222,23 @@ export function Songs({ onAdd, onShowNow }: Props): React.JSX.Element {
                 placeholder={'Verse 1\nLine one\nLine two\n\nChorus\nLine one\nLine two'}
               />
             </label>
+            <div className="lines-row">
+              <span>Show</span>
+              {[1, 2, 3, 4, WHOLE_SECTION].map((n) => (
+                <button
+                  key={n}
+                  className={`btn small${editing.lines === n ? ' on' : ''}`}
+                  onClick={() => setEditing({ ...editing, lines: n })}
+                  aria-pressed={editing.lines === n}
+                >
+                  {n === WHOLE_SECTION ? 'Whole section' : n === 1 ? '1 line' : `${n} lines`}
+                </button>
+              ))}
+              <span className="muted">at a time{stanzaCount > 0 && `: ${stanzaCount} screen${stanzaCount === 1 ? '' : 's'}`}.</span>
+            </div>
             <p className="muted">
-              Leave a blank line between sections. Optional headings such as Verse 1, Chorus or Bridge on their own line
-              label each section. For a few words at a time, put each phrase on its own line, then choose how many lines to show.
-              {stanzaCount > 0 && ` ${stanzaCount} screen${stanzaCount === 1 ? '' : 's'}.`}
+              Write one phrase per line. While the song is live, press the Down arrow to show the next one and Up to go back.
+              Leave a blank line between sections; headings such as Verse 1 or Chorus on their own line label them.
             </p>
             <div className="modal-actions">
               <button className="btn" onClick={() => setEditing(null)}>Cancel</button>

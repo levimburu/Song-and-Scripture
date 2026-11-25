@@ -335,3 +335,18 @@ select.mini.wide { min-width: 200px; }
 .bg-dim { display: grid; grid-template-columns: 1fr 120px 36px; align-items: center; gap: 8px; }
 .song-bg { display: grid; gap: 6px; }
 .song-bg .bgp-grid { grid-template-columns: repeat(8, 1fr); max-height: 120px; }
+
+/* Service plan: segments */
+.seg-group { list-style: none; }
+.seg-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.seg-head { display: flex; align-items: center; gap: 8px; margin: 10px 0 4px; padding: 4px 8px; border-left: 3px solid var(--border-control); cursor: pointer; text-transform: uppercase; letter-spacing: 0.06em; font-size: 12px; font-weight: 700; color: var(--text-2); }
+.seg-head.active { border-left-color: var(--blue); color: var(--text); }
+.seg-head.loose { text-transform: none; letter-spacing: 0; font-weight: 500; }
+.seg-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.seg-here { font-size: 11px; font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--blue); }
+.seg-tools, .row-tools { display: flex; align-items: center; gap: 2px; opacity: 0; }
+.seg-head:hover .seg-tools, .schedule-row:hover .row-tools, .seg-head:focus-within .seg-tools { opacity: 1; }
+.row-tools .row-remove { opacity: 1; }
+.seg-input { background: var(--bg); border: 1px solid var(--border-control); border-radius: 6px; padding: 5px 8px; width: 100%; text-transform: none; letter-spacing: 0; font-weight: 500; color: var(--text); }
+.seg-add { padding: 8px 0 0; }
+.schedule-list { overflow-x: hidden; } .seg-group { min-width: 0; }

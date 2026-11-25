@@ -21,7 +21,7 @@ import {
   resolveBackground,
   type Persisted
 } from '../../shared/state'
-import { isScheduleItems } from '../../shared/validate'
+import { isScheduleItems, isSegments } from '../../shared/validate'
 import type { DisplayInfo, OutputMode, Theme } from '../../shared/types'
 import { installedVersions, registerBible, unregisterBible } from '../../shared/bible'
 import type { BibleFileContents } from '../../shared/types'
@@ -54,7 +54,9 @@ function loadPersisted(): Persisted | null {
       outputTheme: d.outputTheme,
       defaultBackground: typeof d.defaultBackground === 'string' ? d.defaultBackground : null,
       dim: typeof d.bgDim === 'number' ? clampDim(d.bgDim) : undefined,
-      style: sanitizeStyle(d.style)
+      style: sanitizeStyle(d.style),
+      segments: isSegments(d.segments) ? d.segments : undefined,
+      activeSegmentId: typeof d.activeSegmentId === 'string' ? d.activeSegmentId : null
     }
   } catch {
     return null
@@ -101,13 +103,15 @@ export function App(): React.JSX.Element {
         outputTheme: state.outputTheme,
         defaultBackground: state.defaultBackground,
         dim: state.dim,
-        style: state.style
+        style: state.style,
+        segments: state.segments,
+        activeSegmentId: state.activeSegmentId
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...data, bgDim: data.dim, dim: undefined }))
     } catch {
       /* storage unavailable: autosave is best effort */
     }
-  }, [state.scheduleName, state.items, state.theme, state.outputTheme, state.defaultBackground, state.dim, state.style])
+  }, [state.scheduleName, state.items, state.theme, state.outputTheme, state.defaultBackground, state.dim, state.style, state.segments, state.activeSegmentId])
 
   useEffect(() => {
     void window.api.listBibles().then((list) => {
@@ -238,11 +242,19 @@ export function App(): React.JSX.Element {
         <SchedulePane
           name={state.scheduleName}
           items={state.items}
+          segments={state.segments}
+          activeSegmentId={state.activeSegmentId}
           selectedId={state.staged ? null : state.previewItemId}
           liveId={state.live?.itemId ?? null}
           backgroundMissingIds={missingIds}
           onSelect={(id) => dispatch({ type: 'selectItem', id })}
           onRemove={(id) => dispatch({ type: 'removeItem', id })}
+          onMove={(id, delta) => dispatch({ type: 'moveItem', id, delta })}
+          onAddSegment={(name) => dispatch({ type: 'addSegment', name })}
+          onRenameSegment={(id, name) => dispatch({ type: 'renameSegment', id, name })}
+          onRemoveSegment={(id) => dispatch({ type: 'removeSegment', id })}
+          onMoveSegment={(id, delta) => dispatch({ type: 'moveSegment', id, delta })}
+          onActivate={(id) => dispatch({ type: 'setActiveSegment', id })}
         />
         <PreviewPane
           item={item}

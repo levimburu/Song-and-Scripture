@@ -1,6 +1,7 @@
 import { sanitizeStyle, type DisplayStyle } from './style'
 import { mediaUrl } from './media'
 import { makeSampleSchedule } from './sample'
+import { MAX_SEGMENTS, MAX_SEGMENT_NAME, moveSegment, moveWithinSegment, newSegment } from './plan'
 import {
   DEFAULT_DIM,
   type MediaFile,
@@ -8,6 +9,7 @@ import {
   type OutputMode,
   type OutputState,
   type ScheduleItem,
+  type Segment,
   type Slide,
   type Theme
 } from './types'
@@ -28,6 +30,10 @@ export interface LiveSelection {
 export interface AppState {
   scheduleName: string
   items: ScheduleItem[]
+  /** The parts of the service, in order. */
+  segments: Segment[]
+  /** New items go into this segment. */
+  activeSegmentId: string | null
   previewItemId: string | null
   /** Something picked from a tray (a verse, say) and waiting in the preview. Not part of the schedule. */
   staged: ScheduleItem | null
@@ -66,6 +72,12 @@ export type Action =
   | { type: 'setItemBackground'; itemId: string; background: string | null | undefined }
   | { type: 'setDim'; dim: number }
   | { type: 'setStyle'; style: DisplayStyle }
+  | { type: 'addSegment'; name: string }
+  | { type: 'renameSegment'; id: string; name: string }
+  | { type: 'removeSegment'; id: string }
+  | { type: 'moveSegment'; id: string; delta: number }
+  | { type: 'setActiveSegment'; id: string | null }
+  | { type: 'moveItem'; id: string; delta: number }
   | { type: 'newSchedule' }
   | { type: 'loadSchedule'; name: string; items: ScheduleItem[] }
 
@@ -77,6 +89,8 @@ export interface Persisted {
   defaultBackground?: string | null
   dim?: number
   style?: DisplayStyle
+  segments?: Segment[]
+  activeSegmentId?: string | null
 }
 
 export const DEFAULT_SCHEDULE_NAME = 'Sunday service'
@@ -86,6 +100,8 @@ export function createInitialState(persisted?: Persisted | null): AppState {
   return {
     scheduleName: persisted?.scheduleName ?? DEFAULT_SCHEDULE_NAME,
     items,
+    segments: persisted?.segments ?? [],
+    activeSegmentId: persisted?.activeSegmentId ?? null,
     previewItemId: items[0]?.id ?? null,
     staged: null,
     previewIndex: 0,
@@ -271,7 +287,7 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'addItem':
       return {
         ...state,
-        items: [...state.items, action.item],
+        items: [...state.items, state.activeSegmentId && state.segments.some((s) => s.id === state.activeSegmentId) ? { ...action.item, segmentId: state.activeSegmentId } : action.item],
         staged: null,
         previewItemId: action.item.id,
         previewIndex: 0
@@ -284,6 +300,35 @@ export function reducer(state: AppState, action: Action): AppState {
       const neighbour = items[Math.min(index, items.length - 1)]
       return { ...state, items, staged: null, previewItemId: neighbour?.id ?? null, previewIndex: 0 }
     }
+    case 'addSegment': {
+      const name = action.name.trim()
+      if (name === '' || state.segments.length >= MAX_SEGMENTS) return state
+      const segment = newSegment(name)
+      return { ...state, segments: [...state.segments, segment], activeSegmentId: segment.id }
+    }
+    case 'renameSegment': {
+      const name = action.name.trim().slice(0, MAX_SEGMENT_NAME)
+      if (name === '') return state
+      return { ...state, segments: state.segments.map((s) => (s.id === action.id ? { ...s, name } : s)) }
+    }
+    case 'removeSegment':
+      return {
+        ...state,
+        segments: state.segments.filter((s) => s.id !== action.id),
+        activeSegmentId: state.activeSegmentId === action.id ? null : state.activeSegmentId,
+        // The items stay in the service; they just no longer sit under a heading.
+        items: state.items.map((item) => {
+          if (item.segmentId !== action.id) return item
+          const { segmentId: _gone, ...rest } = item
+          return rest
+        })
+      }
+    case 'moveSegment':
+      return { ...state, segments: moveSegment(state.segments, action.id, action.delta) }
+    case 'setActiveSegment':
+      return { ...state, activeSegmentId: action.id }
+    case 'moveItem':
+      return { ...state, items: moveWithinSegment(state.items, state.segments, action.id, action.delta) }
     case 'newSchedule':
       return {
         ...state,

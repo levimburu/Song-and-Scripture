@@ -1,6 +1,6 @@
 import { BOOK_NAMES, type BibleText } from './bible'
 import { VERSION_PATTERN } from './bibleImport'
-import type { ItemStatus, ItemType, ScheduleItem, SectionKind, Slide } from './types'
+import type { ItemStatus, ItemType, ScheduleItem, SectionKind, Segment, Slide } from './types'
 
 const ITEM_TYPES: ReadonlySet<string> = new Set<ItemType>([
   'info',
@@ -48,7 +48,16 @@ export function isScheduleItem(value: unknown): value is ScheduleItem {
     ITEM_STATUSES.has(value.status) &&
     Array.isArray(value.slides) &&
     value.slides.every(isSlide) &&
-    (value.background === undefined || value.background === null || typeof value.background === 'string')
+    (value.background === undefined || value.background === null || typeof value.background === 'string') &&
+    (value.segmentId === undefined || typeof value.segmentId === 'string')
+  )
+}
+
+export function isSegments(value: unknown): value is Segment[] {
+  return (
+    Array.isArray(value) &&
+    value.length <= 30 &&
+    value.every((s) => isRecord(s) && typeof s.id === 'string' && typeof s.name === 'string' && s.name.length <= 60)
   )
 }
 

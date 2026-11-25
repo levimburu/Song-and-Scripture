@@ -23,6 +23,14 @@ export interface ScheduleItem {
   status: ItemStatus
   /** undefined = use the service default, null = no background, string = a media id. */
   background?: string | null
+  /** The part of the service this item belongs to. */
+  segmentId?: string
+}
+
+/** A named part of the service, such as Morning Prayers or Sermon. Each church makes its own. */
+export interface Segment {
+  id: string
+  name: string
 }
 
 export type MediaKind = 'image' | 'video'

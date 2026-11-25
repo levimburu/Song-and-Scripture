@@ -223,3 +223,9 @@ select { background: var(--bg); border: 1px solid var(--border-control); border-
 
 .lines-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; flex-shrink: 0; }
 .btn.on { background: var(--blue); border-color: var(--blue); color: #fff; }
+
+.modal.xwide { width: 980px; }
+.editor-split { display: grid; grid-template-columns: 1fr 380px; gap: 14px; align-items: start; }
+.editor-split textarea { width: 100%; box-sizing: border-box; min-height: 280px; }
+.editor-preview { display: grid; gap: 6px; align-content: start; padding-top: 22px; }
+.editor-preview .screen-frame { --frame-h: 214px; }

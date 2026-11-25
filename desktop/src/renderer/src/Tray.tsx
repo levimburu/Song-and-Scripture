@@ -10,7 +10,7 @@ import {
 } from '../../shared/bible'
 import { itemFromScripture } from '../../shared/schedule'
 import type { TrayTab } from '../../shared/state'
-import type { BibleSummary, ScheduleItem } from '../../shared/types'
+import type { BibleSummary, OutputState, ScheduleItem, Slide } from '../../shared/types'
 import { MediaTab } from './MediaTab'
 import { Songs } from './Songs'
 
@@ -36,10 +36,12 @@ interface Props {
   /** Puts an item on the screen straight away, starting at the given slide. */
   onShowNow: (item: ScheduleItem, index?: number) => void
   media: React.ComponentProps<typeof MediaTab>
+  /** Builds what a slide looks like on the screen (theme and background), for the song editor preview. */
+  songPreview: (slide: Slide) => OutputState
   bibles: BiblePickerProps
 }
 
-export function Tray({ tab, onTab, onAdd, onShowNow, media, bibles }: Props): React.JSX.Element {
+export function Tray({ tab, onTab, onAdd, onShowNow, media, bibles, songPreview }: Props): React.JSX.Element {
   return (
     <section className="tray">
       <nav className="tray-tabs" role="tablist">
@@ -50,7 +52,7 @@ export function Tray({ tab, onTab, onAdd, onShowNow, media, bibles }: Props): Re
         ))}
       </nav>
       <div className="tray-body">
-        {tab === 'songs' && <Songs onAdd={onAdd} onShowNow={onShowNow} />}
+        {tab === 'songs' && <Songs onAdd={onAdd} onShowNow={onShowNow} preview={songPreview} />}
         {tab === 'scriptures' && <Scriptures onAdd={onAdd} onShowNow={onShowNow} {...bibles} />}
         {tab === 'media' && <MediaTab {...media} />}
         {tab === 'themes' && <p className="empty">Themes come in a later milestone: fonts, backgrounds and church logo.</p>}

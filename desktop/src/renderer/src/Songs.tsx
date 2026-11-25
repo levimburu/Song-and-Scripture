@@ -1,9 +1,10 @@
 import { IconEdit, IconPlayerPlayFilled, IconPlus, IconSearch, IconTrash } from '@tabler/icons-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { splitLyrics } from '../../shared/lyrics'
+import { isSectionHeader, splitLyrics } from '../../shared/lyrics'
 import { itemFromSong } from '../../shared/schedule'
 import { DEFAULT_LINES, newSong, parseSongs, searchSongs, seedSongs, WHOLE_SECTION, type Song } from '../../shared/songs'
-import type { ScheduleItem } from '../../shared/types'
+import type { OutputState, ScheduleItem, Slide } from '../../shared/types'
+import { SlideView } from './SlideView'
 
 const SONGS_KEY = 'sas.songs.v1'
 
@@ -18,9 +19,10 @@ function loadSongs(): Song[] {
 interface Props {
   onAdd: (item: ScheduleItem) => void
   onShowNow: (item: ScheduleItem, index?: number) => void
+  preview: (slide: Slide) => OutputState
 }
 
-export function Songs({ onAdd, onShowNow }: Props): React.JSX.Element {
+export function Songs({ onAdd, onShowNow, preview }: Props): React.JSX.Element {
   const [songs, setSongs] = useState<Song[]>(loadSongs)
   const [query, setQuery] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -28,6 +30,7 @@ export function Songs({ onAdd, onShowNow }: Props): React.JSX.Element {
   const [editing, setEditing] = useState<{ id: string | null; title: string; lyrics: string; lines: number } | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const listRef = useRef<HTMLUListElement>(null)
+  const [caret, setCaret] = useState(0)
 
   useEffect(() => {
     try {
@@ -98,6 +101,23 @@ export function Songs({ onAdd, onShowNow }: Props): React.JSX.Element {
       show(0)
     }
   }
+
+  // The screen the cursor is in, so the editor shows what the audience will see.
+  const editSlides = useMemo(() => (editing ? splitLyrics(editing.lyrics, { maxLines: editing.lines }) : []), [editing])
+  const caretSlide = useMemo(() => {
+    if (!editing || editSlides.length === 0) return null
+    // Count the lyric lines (not blank lines or headings) up to the cursor, then find the screen that holds that line.
+    const upTo = editing.lyrics.slice(0, caret).replace(/\r\n?/g, '\n').split('\n')
+    const current = upTo.length > 0 && upTo[upTo.length - 1].trim() !== '' && !isSectionHeader(upTo[upTo.length - 1])
+    let n = upTo.filter((l) => l.trim() !== '' && !isSectionHeader(l)).length
+    if (!current) n += 1 // on a blank or heading line: show the screen that comes next
+    let seen = 0
+    for (const slide of editSlides) {
+      seen += slide.lines.length
+      if (n <= seen) return slide
+    }
+    return editSlides[editSlides.length - 1]
+  }, [editing, editSlides, caret])
 
   const stanzaCount = editing ? splitLyrics(editing.lyrics, { maxLines: editing.lines }).length : 0
 
@@ -199,7 +219,7 @@ export function Songs({ onAdd, onShowNow }: Props): React.JSX.Element {
 
       {editing && (
         <div className="modal-backdrop" role="presentation">
-          <div className="modal wide" role="dialog" aria-modal="true" aria-label={editing.id ? 'Edit song' : 'New song'}>
+          <div className="modal xwide" role="dialog" aria-modal="true" aria-label={editing.id ? 'Edit song' : 'New song'}>
             <h2>{editing.id ? 'Edit song' : 'New song'}</h2>
             <label className="field">
               Title
@@ -211,17 +231,30 @@ export function Songs({ onAdd, onShowNow }: Props): React.JSX.Element {
                 autoFocus
               />
             </label>
+            <div className="editor-split">
             <label className="field">
               Lyrics
               <textarea
                 value={editing.lyrics}
                 rows={14}
                 maxLength={20000}
-                onChange={(e) => setEditing({ ...editing, lyrics: e.target.value })}
+                onChange={(e) => {
+                  setEditing({ ...editing, lyrics: e.target.value })
+                  setCaret(e.target.selectionStart)
+                }}
+                onKeyUp={(e) => setCaret(e.currentTarget.selectionStart)}
+                onClick={(e) => setCaret(e.currentTarget.selectionStart)}
                 aria-label="Song lyrics"
                 placeholder={'Verse 1\nLine one\nLine two\n\nChorus\nLine one\nLine two'}
               />
             </label>
+            <div className="editor-preview" aria-label="Preview">
+              <div className="screen-frame">
+                <SlideView output={preview(caretSlide ?? { id: 'p', kind: 'verse', label: '', lines: [''] })} compact />
+              </div>
+              <span className="muted">Preview of the screen your cursor is in.</span>
+            </div>
+            </div>
             <div className="lines-row">
               <span>Each screen shows</span>
               {[WHOLE_SECTION, 1, 2, 3, 4].map((n) => (

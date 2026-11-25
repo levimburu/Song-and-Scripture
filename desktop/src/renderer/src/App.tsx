@@ -236,6 +236,14 @@ export function App(): React.JSX.Element {
               setBibleVersion('KJV')
             })
         }}
+        songPreview={(slide) => ({
+          mode: 'slide',
+          slide,
+          theme: state.outputTheme,
+          alert: null,
+          background: resolveBackground(state.defaultBackground, state.media),
+          dim: state.dim
+        })}
         tab={state.tab}
         onTab={(tab) => dispatch({ type: 'setTab', tab })}
         onAdd={(it) => dispatch({ type: 'addItem', item: it })}

@@ -27,6 +27,10 @@ const HEADER_KINDS: Record<string, { kind: SectionKind; label: string }> = {
   tag: { kind: 'bridge', label: 'Tag' }
 }
 
+export function isSectionHeader(line: string): boolean {
+  return readHeader(line) !== null
+}
+
 function readHeader(line: string): Header | null {
   const match = HEADER_PATTERN.exec(line.trim())
   if (!match) return null

@@ -175,3 +175,16 @@ select { background: var(--bg); border: 1px solid var(--border-control); border-
 
 .scripture-actions { display: inline-flex; gap: 8px; }
 .btn.small.go-live { height: 28px; padding: 0 12px; }
+
+/* Verse lists in the Scriptures tab */
+.tray-split { max-width: none; }
+.verse-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; max-height: 150px; overflow: auto; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); }
+.verse-row { display: flex; gap: 10px; padding: 5px 10px; cursor: pointer; user-select: none; }
+.verse-row:hover { background: var(--panel); }
+.verse-row.picked { background: var(--select); color: var(--select-text); }
+.verse-num { min-width: 22px; color: var(--scripture); font-weight: 600; text-align: right; }
+.verse-num.wide { min-width: 120px; text-align: left; }
+.verse-row.picked .verse-num { color: inherit; }
+.verse-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.search input { max-width: 640px; }
+.scripture-result { max-width: 900px; }

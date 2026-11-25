@@ -46,7 +46,7 @@ export type Action =
   | { type: 'selectSlide'; index: number }
   | { type: 'goLive' }
   | { type: 'toggleLive' }
-  | { type: 'showNow'; item: ScheduleItem }
+  | { type: 'showNow'; item: ScheduleItem; index?: number }
   | { type: 'liveGoto'; index: number }
   | { type: 'liveStep'; delta: number }
   | { type: 'setMode'; mode: OutputMode }
@@ -165,7 +165,7 @@ export function reducer(state: AppState, action: Action): AppState {
           itemId: action.item.id,
           title: action.item.title,
           slides: action.item.slides,
-          index: 0,
+          index: clamp(action.index ?? 0, action.item.slides.length),
           background: effectiveBackground(action.item, state.defaultBackground)
         }
       }

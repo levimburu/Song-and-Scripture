@@ -5,6 +5,7 @@ import {
   lookupPassage,
   parseReference,
   registerBible,
+  searchVerses,
   unregisterBible
 } from './bible'
 import { buildBibleText, parseBibleFile } from './bibleImport'
@@ -170,5 +171,66 @@ describe('every Kiswahili book name resolves', () => {
     const names = ['Mwanzo','Kutoka','Walawi','Hesabu','Kumbukumbu la Torati','Yoshua','Waamuzi','Ruthu','1 Samweli','2 Samweli','1 Wafalme','2 Wafalme','1 Mambo ya Nyakati','2 Mambo ya Nyakati','Ezra','Nehemia','Esta','Ayubu','Zaburi','Mithali','Mhubiri','Wimbo Ulio Bora','Isaya','Yeremia','Maombolezo','Ezekieli','Danieli','Hosea','Yoeli','Amosi','Obadia','Yona','Mika','Nahumu','Habakuki','Sefania','Hagai','Zekaria','Malaki','Mathayo','Marko','Luka','Yohana','Matendo ya Mitume','Warumi','1 Wakorintho','2 Wakorintho','Wagalatia','Waefeso','Wafilipi','Wakolosai','1 Wathesalonike','2 Wathesalonike','1 Timotheo','2 Timotheo','Tito','Filemoni','Waebrania','Yakobo','1 Petro','2 Petro','1 Yohana','2 Yohana','3 Yohana','Yuda','Ufunuo wa Yohana']
     expect(names).toHaveLength(66)
     expect(names.map((n) => parseReference(`${n} 1:1`)?.book)).toEqual([...BOOK_NAMES])
+  })
+})
+
+describe('typing references the way people really type them', () => {
+  const john316 = { book: 'John', chapter: 3, verseStart: 16 }
+  it.each([
+    'John 3:16', 'john 3:16', 'John 3.16', 'John 3 16', 'Jn 3:16', 'John chapter 3 verse 16', 'john ch 3 v 16',
+    'Jn3v16', 'John 3 verse 16', 'John 3:16 ', '  JOHN   3 : 16', 'Yohana sura 3 aya 16', 'Yohana 3:16'
+  ])('reads "%s"', (typed) => {
+    expect(parseReference(typed)).toEqual(john316)
+  })
+
+  it('reads ranges written in different ways', () => {
+    const range = { book: 'John', chapter: 3, verseStart: 16, verseEnd: 18 }
+    for (const typed of ['John 3:16-18', 'John 3 16-18', 'John 3:16 to 18', 'John 3 verses 16 to 18', 'John 3:16–18', 'John 3:18-16', 'john 3:16 through 18', 'John 3 verse 16 and 18']) {
+      expect(parseReference(typed)).toEqual(range)
+    }
+  })
+
+  it('reads whole chapters and numbered books', () => {
+    expect(parseReference('Psalm 23')).toEqual({ book: 'Psalms', chapter: 23 })
+    expect(parseReference('Psalm chapter 23')).toEqual({ book: 'Psalms', chapter: 23 })
+    expect(parseReference('1 John 4 8')).toEqual({ book: '1 John', chapter: 4, verseStart: 8 })
+    expect(parseReference('1john 4:8')).toEqual({ book: '1 John', chapter: 4, verseStart: 8 })
+    expect(parseReference('2 Cor 5:17')).toEqual({ book: '2 Corinthians', chapter: 5, verseStart: 17 })
+    expect(parseReference('Song of Solomon 2 1')).toEqual({ book: 'Song of Solomon', chapter: 2, verseStart: 1 })
+  })
+
+  it('accepts a clear start of a book name, but not an ambiguous one', () => {
+    expect(parseReference('Revel 22:21')?.book).toBe('Revelation')
+    expect(parseReference('Ecclesi 3:1')?.book).toBe('Ecclesiastes')
+    expect(parseReference('Corinth 5:17')).toBeNull()
+    expect(parseReference('Jo 3:16')).toBeNull()
+  })
+
+  it('does not treat ordinary words as references', () => {
+    expect(parseReference('for God so loved')).toBeNull()
+    expect(parseReference('the lord is my shepherd')).toBeNull()
+    expect(parseReference('')).toBeNull()
+  })
+})
+
+describe('searching verses by words', () => {
+  it('finds a verse from words typed from memory', () => {
+    const hits = searchVerses('God so loved the world')
+    expect(hits[0].reference).toBe('John 3:16')
+    expect(hits[0].text).toMatch(/^For God so loved the world/)
+  })
+
+  it('needs every word, ignores case and punctuation, and returns Bible order', () => {
+    const hits = searchVerses("LORD, is my shepherd")
+    expect(hits[0].reference).toBe('Psalms 23:1')
+    expect(searchVerses('zzzzqqq')).toEqual([])
+    expect(searchVerses('   ')).toEqual([])
+    const order = searchVerses('love', 'KJV', 15).map((h) => h.book)
+    expect(order).toEqual([...order].sort((a, b) => BOOK_NAMES.indexOf(a) - BOOK_NAMES.indexOf(b)))
+  })
+
+  it('limits the number of results and handles missing versions', () => {
+    expect(searchVerses('the', 'KJV', 5)).toHaveLength(5)
+    expect(searchVerses('the', 'NOPE')).toEqual([])
   })
 })

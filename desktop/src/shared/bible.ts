@@ -188,14 +188,33 @@ for (const [name, aliases] of SWAHILI_NAMES) {
 export const BOOK_NAMES: readonly string[] = BOOKS.map(([name]) => name)
 
 export function resolveBook(raw: string): string | null {
-  return BOOK_LOOKUP.get(normalize(raw)) ?? null
+  const key = normalize(raw)
+  const exact = BOOK_LOOKUP.get(key)
+  if (exact) return exact
+  // A unique start of a book name is enough ("revel" -> Revelation), as long as it is not ambiguous.
+  if (key.length < 3) return null
+  const matches = new Set<string>()
+  for (const [alias, book] of BOOK_LOOKUP) if (alias.startsWith(key)) matches.add(book)
+  return matches.size === 1 ? [...matches][0] : null
 }
 
 const REFERENCE_PATTERN =
-  /^\s*((?:[1-3]\s*)?[A-Za-z][A-Za-z.\s]*?)\s*(\d{1,3})(?:\s*[:.]\s*(\d{1,3})(?:\s*[-–—]\s*(\d{1,3}))?)?\s*$/
+  /^\s*((?:[1-3]\s*)?[A-Za-z][A-Za-z.\s]*?)\s*(\d{1,3})(?:\s*(?:[:.]|\s)\s*(\d{1,3})(?:\s*[-–—]\s*(\d{1,3}))?)?\s*$/
+
+// Turns the many ways people type a reference into "Book 3:16-18":
+// "John chapter 3 verse 16", "john 3 16 to 18", "Jn3v16", "Yohana sura 3 aya 16".
+function tidyReference(input: string): string {
+  return input
+    .replace(/\b(?:chapter|chap|ch|sura)\b\.?/gi, ' ')
+    .replace(/(\d)\s*(?:verses?|vss?|vs|v|aya|mistari)\.?\s*(?=\d)/gi, '$1:')
+    .replace(/(\d)\s*(?:to|through|thru|hadi)\s*(?=\d)/gi, '$1-')
+    .replace(/(\d)\s*(?:and|&)\s*(?=\d)/gi, '$1-')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
 
 export function parseReference(input: string): BibleReference | null {
-  const match = REFERENCE_PATTERN.exec(input)
+  const match = REFERENCE_PATTERN.exec(tidyReference(input))
   if (!match) return null
   const book = resolveBook(match[1])
   if (!book) return null
@@ -273,4 +292,42 @@ export function lookupPassage(ref: BibleReference, version = 'KJV'): BibleResult
         })
 
   return { version, book: ref.book, bookLabel: label, chapter: ref.chapter, reference, verses }
+}
+
+export interface VerseHit {
+  book: string
+  chapter: number
+  verse: number
+  text: string
+  /** For example "John 3:16", using this Bible's own book names. */
+  reference: string
+}
+
+/** Finds verses containing every word typed (in any order), in Bible order. */
+export function searchVerses(query: string, version = 'KJV', limit = 30): VerseHit[] {
+  const bible = installed.get(version)
+  const words = query
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}'’\s]/gu, ' ')
+    .split(/\s+/)
+    .filter((w) => w.length >= 2)
+  if (!bible || words.length === 0) return []
+  const hits: VerseHit[] = []
+  for (const book of BOOK_NAMES) {
+    const chapters = bible.books[book]
+    if (!chapters) continue
+    const label = bible.bookLabels?.[book] ?? book
+    for (let c = 0; c < chapters.length; c++) {
+      for (let v = 0; v < chapters[c].length; v++) {
+        const text = chapters[c][v]
+        if (text === '') continue
+        const lower = text.toLowerCase()
+        if (words.every((w) => lower.includes(w))) {
+          hits.push({ book, chapter: c + 1, verse: v + 1, text, reference: `${label} ${c + 1}:${v + 1}` })
+          if (hits.length >= limit) return hits
+        }
+      }
+    }
+  }
+  return hits
 }

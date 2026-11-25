@@ -278,3 +278,6 @@ select.mini { height: 28px; background: var(--bg); border: 1px solid var(--borde
 .app.tray-expanded .workspace { grid-row: 2; grid-column: 1; }
 .app.tray-expanded .tray { position: static; grid-row: 2; grid-column: 1; justify-self: start; width: calc(280px + (100% - 280px) / 2); height: 100%; z-index: 5; }
 .app.tray-expanded .statusbar { grid-row: 3; }
+/* Live list: show the whole screen text, wrapping onto more lines */
+.section-btn { align-items: flex-start; }
+.section-text { white-space: normal; overflow: visible; text-overflow: clip; }

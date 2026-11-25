@@ -281,3 +281,7 @@ select.mini { height: 28px; background: var(--bg); border: 1px solid var(--borde
 /* Live list: show the whole screen text, wrapping onto more lines */
 .section-btn { align-items: flex-start; }
 .section-text { white-space: normal; overflow: visible; text-overflow: clip; }
+
+.tab-pane { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.tab-pane[hidden] { display: none; }
+.tab-pane > .empty { margin: 0; }

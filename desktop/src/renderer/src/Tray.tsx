@@ -44,6 +44,11 @@ interface Props {
 }
 
 export function Tray({ expanded, onToggleExpanded, tab, onTab, onAdd, onShowNow, media, bibles, songPreview }: Props): React.JSX.Element {
+  const bodyRef = useRef<HTMLDivElement>(null)
+  // Coming back to Songs or Scriptures puts the cursor in its first box, ready to type.
+  useEffect(() => {
+    bodyRef.current?.querySelector<HTMLElement>('.tab-pane:not([hidden]) [data-autofocus]')?.focus()
+  }, [tab])
   return (
     <section className="tray">
       <nav className="tray-tabs" role="tablist">
@@ -57,11 +62,20 @@ export function Tray({ expanded, onToggleExpanded, tab, onTab, onAdd, onShowNow,
           {expanded ? 'Shrink' : 'Enlarge'}
         </button>
       </nav>
-      <div className="tray-body">
-        {tab === 'songs' && <Songs onAdd={onAdd} onShowNow={onShowNow} preview={songPreview} />}
-        {tab === 'scriptures' && <Scriptures onAdd={onAdd} onShowNow={onShowNow} {...bibles} />}
-        {tab === 'media' && <MediaTab {...media} />}
-        {tab === 'themes' && <p className="empty">Themes come in a later milestone: fonts, backgrounds and church logo.</p>}
+      <div className="tray-body" ref={bodyRef}>
+        {/* Every tab stays mounted so what you typed and picked is still there when you come back. */}
+        <div className="tab-pane" hidden={tab !== 'songs'}>
+          <Songs onAdd={onAdd} onShowNow={onShowNow} preview={songPreview} />
+        </div>
+        <div className="tab-pane" hidden={tab !== 'scriptures'}>
+          <Scriptures onAdd={onAdd} onShowNow={onShowNow} {...bibles} />
+        </div>
+        <div className="tab-pane" hidden={tab !== 'media'}>
+          <MediaTab {...media} />
+        </div>
+        <div className="tab-pane" hidden={tab !== 'themes'}>
+          <p className="empty">Themes come in a later milestone: fonts, backgrounds and church logo.</p>
+        </div>
       </div>
     </section>
   )
@@ -242,6 +256,7 @@ function Scriptures({
             aria-label="Book"
             autoComplete="off"
             autoFocus
+            data-autofocus
           />
         </label>
         <label>

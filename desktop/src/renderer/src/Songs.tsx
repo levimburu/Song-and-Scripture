@@ -138,6 +138,7 @@ export function Songs({ onAdd, onShowNow, preview }: Props): React.JSX.Element {
               aria-label="Search songs"
               autoComplete="off"
               autoFocus
+              data-autofocus
             />
           </label>
           <button className="btn small" onClick={() => setEditing({ id: null, title: '', lyrics: '', lines: DEFAULT_LINES })}>

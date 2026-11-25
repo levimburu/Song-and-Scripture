@@ -65,9 +65,9 @@ export const MIN_REF = 20
 export const MAX_REF = 90
 
 export const DEFAULT_STYLE: DisplayStyle = {
-  songs: { font: 'Inter', color: null, maxSize: 150, bold: true, align: 'center', valign: 'center', shadow: false },
-  scripture: { font: 'Lora', color: null, maxSize: 150, bold: false, align: 'center', valign: 'center', shadow: false },
-  reference: { show: true, font: 'Inter', color: null, size: 48, position: 'bottom', align: 'center', bold: false }
+  songs: { font: 'Inter', color: null, maxSize: 160, bold: true, align: 'center', valign: 'center', shadow: false },
+  scripture: { font: 'Lora', color: null, maxSize: 160, bold: true, align: 'center', valign: 'center', shadow: false },
+  reference: { show: true, font: 'Inter', color: null, size: 64, position: 'bottom', align: 'center', bold: true }
 }
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null

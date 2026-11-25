@@ -78,7 +78,7 @@ export function Tray({ expanded, onToggleExpanded, tab, onTab, onAdd, onShowNow,
           <MediaTab {...media} />
         </div>
         <div className="tab-pane" hidden={tab !== 'themes'}>
-          <Themes style={style} onChange={onStyle} preview={(slide, s) => ({ ...songPreview(slide), style: s })} />
+          <Themes style={style} onSave={onStyle} preview={(slide, s) => ({ ...songPreview(slide), style: s })} />
         </div>
       </div>
     </section>

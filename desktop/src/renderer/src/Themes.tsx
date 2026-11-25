@@ -1,5 +1,5 @@
 import { IconRestore } from '@tabler/icons-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   DEFAULT_STYLE,
   FONTS,
@@ -17,8 +17,9 @@ import type { OutputState, Slide } from '../../shared/types'
 import { SlideView } from './SlideView'
 
 interface Props {
+  /** The saved style, the one the screens use. */
   style: DisplayStyle
-  onChange: (style: DisplayStyle) => void
+  onSave: (style: DisplayStyle) => void
   /** Builds the preview screen (theme and background) around a sample slide and the style being edited. */
   preview: (slide: Slide, style: DisplayStyle) => OutputState
 }
@@ -201,7 +202,7 @@ function ReferenceControls({ value, onChange }: { value: ReferenceStyle; onChang
     <>
       <Row label="Show title">
         <label className="check-inline">
-          <input type="checkbox" checked={value.show} onChange={(e) => set('show', e.target.checked)} /> Show the title (for example John 3:16 (NIV))
+          <input type="checkbox" checked={value.show} onChange={(e) => set('show', e.target.checked)} /> Show the verse title (for example John 3:16 (NIV))
         </label>
       </Row>
       <Row label="Font">
@@ -227,13 +228,18 @@ function ReferenceControls({ value, onChange }: { value: ReferenceStyle; onChang
   )
 }
 
-export function Themes({ style, onChange, preview }: Props): React.JSX.Element {
+export function Themes({ style: saved, onSave, preview }: Props): React.JSX.Element {
   const [section, setSection] = useState<'songs' | 'scripture'>('scripture')
+  // Changes stay in a draft, shown in the preview, until Save puts them on the screens.
+  const [style, onChange] = useState<DisplayStyle>(saved)
+  useEffect(() => onChange(saved), [saved])
+  const dirty = useMemo(() => JSON.stringify(style) !== JSON.stringify(saved), [style, saved])
   const sample = section === 'songs' ? SAMPLE_SONG : SAMPLE_VERSE
 
   return (
     <div className="themes">
       <div className="themes-controls">
+        <div className="themes-scroll">
         <div className="themes-head">
           <Seg
             value={section}
@@ -242,7 +248,7 @@ export function Themes({ style, onChange, preview }: Props): React.JSX.Element {
             label="What to style"
           />
           <button className="btn small" onClick={() => onChange(DEFAULT_STYLE)}>
-            <IconRestore size={14} /> Reset all
+            <IconRestore size={14} /> Reset to defaults
           </button>
         </div>
         {section === 'songs' ? (
@@ -251,16 +257,26 @@ export function Themes({ style, onChange, preview }: Props): React.JSX.Element {
           <>
             <h3 className="style-group">Verse text</h3>
             <TextControls name="Verse" value={style.scripture} onChange={(scripture) => onChange({ ...style, scripture })} />
-            <h3 className="style-group">Title of the verse</h3>
+            <h3 className="style-group">Verse Title</h3>
             <ReferenceControls value={style.reference} onChange={(reference) => onChange({ ...style, reference })} />
           </>
         )}
+        </div>
+        <div className="themes-footer">
+          <button className="btn primary" onClick={() => onSave(style)} disabled={!dirty}>
+            Save
+          </button>
+          <button className="btn" onClick={() => onChange(saved)} disabled={!dirty}>
+            Undo changes
+          </button>
+          <span className={dirty ? 'unsaved' : 'muted'}>{dirty ? 'Unsaved changes. Save to use them on the screen.' : 'Saved'}</span>
+        </div>
       </div>
       <div className="themes-preview">
         <div className="screen-frame">
           <SlideView output={preview(sample, style)} compact />
         </div>
-        <span className="muted">Preview. Changes show on the screen right away.</span>
+        <span className="muted">Preview of your changes. They reach the screen when you press Save.</span>
       </div>
     </div>
   )

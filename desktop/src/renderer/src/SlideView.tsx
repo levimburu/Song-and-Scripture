@@ -83,7 +83,7 @@ export function SlideView({ output, compact = false, animate = false }: Props): 
         {slide && (
           <div
             className="screen-content"
-            style={slide.reference && ref.show && ref.position === 'top' ? { padding: `${ref.size + 110}px 140px 90px` } : undefined}
+            style={slide.reference && ref.show && ref.position === 'top' ? { padding: `${ref.size + 110}px 110px 90px` } : undefined}
           >
             <div
               ref={textRef}
@@ -113,7 +113,7 @@ export function SlideView({ output, compact = false, animate = false }: Props): 
                   fontWeight: ref.bold ? 700 : 400,
                   color: ref.color ?? undefined,
                   textAlign: ref.align,
-                  padding: '0 140px',
+                  padding: '0 110px',
                   textShadow: textStyle.shadow ? '0 3px 10px rgba(0,0,0,0.85)' : undefined
                 }}
               >

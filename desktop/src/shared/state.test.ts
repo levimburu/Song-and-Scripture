@@ -106,6 +106,26 @@ describe('going live', () => {
   })
 })
 
+describe('toggleLive', () => {
+  it('shows the preview, then clears it, then shows it again', () => {
+    let state = songState()
+    state = reducer(state, { type: 'toggleLive' })
+    expect(deriveOutput(state).mode).toBe('slide')
+    state = reducer(state, { type: 'toggleLive' })
+    expect(deriveOutput(state).mode).toBe('clear')
+    state = reducer(state, { type: 'toggleLive' })
+    expect(deriveOutput(state).mode).toBe('slide')
+  })
+
+  it('puts a different previewed slide live instead of clearing', () => {
+    let state = reducer(songState(), { type: 'toggleLive' })
+    state = reducer(state, { type: 'selectSlide', index: 2 })
+    state = reducer(state, { type: 'toggleLive' })
+    expect(deriveOutput(state).mode).toBe('slide')
+    expect(state.live?.index).toBe(2)
+  })
+})
+
 describe('output modes', () => {
   it('toggles black, logo and clear on and off', () => {
     let state = reducer(songState(), { type: 'goLive' })

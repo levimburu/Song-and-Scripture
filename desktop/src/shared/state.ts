@@ -29,6 +29,7 @@ export type Action =
   | { type: 'selectItem'; id: string; index?: number }
   | { type: 'selectSlide'; index: number }
   | { type: 'goLive' }
+  | { type: 'toggleLive' }
   | { type: 'liveGoto'; index: number }
   | { type: 'liveStep'; delta: number }
   | { type: 'setMode'; mode: OutputMode }
@@ -104,6 +105,15 @@ export function reducer(state: AppState, action: Action): AppState {
           index: clamp(state.previewIndex, item.slides.length)
         }
       }
+    }
+    case 'toggleLive': {
+      const item = previewItem(state)
+      const showing =
+        state.mode === 'slide' &&
+        state.live !== null &&
+        state.live.itemId === item?.id &&
+        state.live.index === state.previewIndex
+      return showing ? { ...state, mode: 'clear' } : reducer(state, { type: 'goLive' })
     }
     case 'liveGoto': {
       if (!state.live) return state

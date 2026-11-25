@@ -72,8 +72,14 @@ export function App(): React.JSX.Element {
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent): void => {
-      if (isTyping(event.target) || event.ctrlKey || event.metaKey || event.altKey) return
       const key = event.key.toLowerCase()
+      if (key === 'c' && event.ctrlKey && !event.metaKey && !event.altKey) {
+        if (isTyping(event.target) || (window.getSelection()?.toString() ?? '') !== '') return
+        dispatch({ type: 'toggleLive' })
+        event.preventDefault()
+        return
+      }
+      if (isTyping(event.target) || event.ctrlKey || event.metaKey || event.altKey) return
       if (key === 'arrowright' || key === 'arrowdown' || key === ' ' || key === 'pagedown') dispatch({ type: 'liveStep', delta: 1 })
       else if (key === 'arrowleft' || key === 'arrowup' || key === 'pageup') dispatch({ type: 'liveStep', delta: -1 })
       else if (key === 'enter') dispatch({ type: 'goLive' })

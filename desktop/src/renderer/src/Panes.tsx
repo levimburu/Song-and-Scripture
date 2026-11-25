@@ -8,6 +8,7 @@ import {
   IconTrash,
   IconVideo
 } from '@tabler/icons-react'
+import { useEffect, useRef } from 'react'
 import { DEFAULT_DIM, type ItemType, type OutputBackground, type OutputState, type ScheduleItem, type Slide, type Theme } from '../../shared/types'
 import { SlideView } from './SlideView'
 
@@ -133,6 +134,11 @@ interface LiveProps {
 
 export function LivePane({ title, slides, index, output, onGoto }: LiveProps): React.JSX.Element {
   const isLive = title !== null && output.mode === 'slide'
+  const listRef = useRef<HTMLUListElement>(null)
+  // Keep the current screen in view as the arrow keys move through a long list.
+  useEffect(() => {
+    listRef.current?.querySelector('.selected')?.scrollIntoView({ block: 'nearest' })
+  }, [index, slides])
   return (
     <section className="pane live">
       <header className="pane-head">
@@ -143,7 +149,7 @@ export function LivePane({ title, slides, index, output, onGoto }: LiveProps): R
         <SlideView output={output} animate />
       </div>
       <div className="live-title">{title ?? 'Nothing live'}</div>
-      <ul className="live-sections">
+      <ul className="live-sections" ref={listRef}>
         {slides.map((s, i) => (
           <li key={s.id}>
             <button className={`section-btn kind-${s.kind}${i === index ? ' selected' : ''}`} onClick={() => onGoto(i)}>

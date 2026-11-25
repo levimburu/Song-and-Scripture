@@ -269,3 +269,12 @@ select.mini { height: 28px; background: var(--bg); border: 1px solid var(--borde
 .songs { grid-template-columns: 260px minmax(0, 1fr); }
 .song-head { flex-wrap: wrap; }
 .tray-body { overflow-x: hidden; }
+
+.live-sections { overflow-x: hidden; flex: 1; min-height: 0; align-content: start; }
+.section-btn { min-width: 0; }
+.section-text { min-width: 0; flex: 1; }
+/* Enlarged tray sits in the same grid cell as the workspace instead of floating over the status bar */
+.app.tray-expanded { grid-template-rows: 48px minmax(0, 1fr) 36px; }
+.app.tray-expanded .workspace { grid-row: 2; grid-column: 1; }
+.app.tray-expanded .tray { position: static; grid-row: 2; grid-column: 1; justify-self: start; width: calc(280px + (100% - 280px) / 2); height: 100%; z-index: 5; }
+.app.tray-expanded .statusbar { grid-row: 3; }

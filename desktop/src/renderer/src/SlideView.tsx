@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { OutputState } from '../../shared/types'
 import './fonts'
 
@@ -21,6 +21,15 @@ export function SlideView({ output, compact = false, animate = false }: Props): 
   const textRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(1)
   const [failedUrl, setFailedUrl] = useState<string | null>(null)
+  // Fonts load after the first paint. Fitting against the fallback font gives text that overflows once the real one arrives.
+  const [fontTick, setFontTick] = useState(0)
+
+  useEffect(() => {
+    const bump = (): void => setFontTick((n) => n + 1)
+    void document.fonts.ready.then(bump)
+    document.fonts.addEventListener('loadingdone', bump)
+    return () => document.fonts.removeEventListener('loadingdone', bump)
+  }, [])
 
   useLayoutEffect(() => {
     const host = hostRef.current
@@ -50,11 +59,14 @@ export function SlideView({ output, compact = false, animate = false }: Props): 
     while (low < high) {
       const mid = Math.ceil((low + high) / 2)
       el.style.fontSize = `${mid}px`
-      if (el.scrollHeight <= el.clientHeight && el.scrollWidth <= el.clientWidth) low = mid
+      // Add up the lines instead of using scrollHeight: the text is centred, so overflow above the box is not counted there.
+      let used = 0
+      for (const child of Array.from(el.children)) used += (child as HTMLElement).offsetHeight
+      if (used <= el.clientHeight && el.scrollWidth <= el.clientWidth) low = mid
       else high = mid - 1
     }
     el.style.fontSize = `${low}px`
-  }, [lines, isScripture, textStyle.maxSize, textStyle.font, textStyle.bold, scale])
+  }, [lines, isScripture, textStyle.maxSize, textStyle.font, textStyle.bold, scale, fontTick, ref.show, ref.position, ref.size])
 
   const bg =
     (output.mode === 'slide' || output.mode === 'clear') && output.background && output.background.url !== failedUrl
@@ -83,7 +95,7 @@ export function SlideView({ output, compact = false, animate = false }: Props): 
         {slide && (
           <div
             className="screen-content"
-            style={slide.reference && ref.show && ref.position === 'top' ? { padding: `${ref.size + 110}px 110px 90px` } : undefined}
+            style={slide.reference && ref.show ? { padding: ref.position === 'top' ? `${ref.size + 110}px 110px 90px` : `90px 110px ${ref.size + 110}px` } : undefined}
           >
             <div
               ref={textRef}

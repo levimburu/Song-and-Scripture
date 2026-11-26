@@ -120,22 +120,34 @@ export function RichEditor({ initial, onChange, onCaret, font, bold, label, plac
 
   function setSize(percent: number): void {
     const range = selected(true)
-    if (!range || !box.current) return
+    const el = box.current
+    if (!range || !el) return
     const target = Math.min(MAX_SCALE, Math.max(MIN_SCALE, percent / 100))
-    // Sizes inside the selection are replaced, not stacked.
-    const inside = Array.from(box.current.querySelectorAll<HTMLElement>('span[data-s]')).filter((s) => range.intersectsNode(s) && range.comparePoint(s, 0) >= 0)
-    for (const s of inside) s.replaceWith(...Array.from(s.childNodes))
-    const factor = Math.round((target / scaleAbove(range.commonAncestorContainer)) * 100) / 100
-    if (factor === 1) {
-      changed()
-      return
+    // If the words are everything inside a size span, take the span in too, so it is replaced and not nested.
+    const whole = (span: HTMLElement): boolean => {
+      const all = document.createRange()
+      all.selectNodeContents(span)
+      return range.compareBoundaryPoints(Range.START_TO_START, all) <= 0 && range.compareBoundaryPoints(Range.END_TO_END, all) >= 0
     }
-    const span = document.createElement('span')
-    span.dataset.s = String(factor)
-    span.style.fontSize = `${factor}em`
-    span.appendChild(range.extractContents())
-    range.insertNode(span)
-    selectContents(span)
+    const start = range.commonAncestorContainer
+    let span = (start instanceof HTMLElement ? start : start.parentElement)?.closest<HTMLElement>('span[data-s]') ?? null
+    while (span && el.contains(span) && whole(span)) {
+      range.setStartBefore(span)
+      range.setEndAfter(span)
+      span = span.parentElement?.closest<HTMLElement>('span[data-s]') ?? null
+    }
+    const pieces = range.extractContents()
+    // Sizes inside the selection are replaced, not stacked.
+    for (const s of Array.from(pieces.querySelectorAll<HTMLElement>('span[data-s]'))) s.replaceWith(...Array.from(s.childNodes))
+    const factor = Math.round((target / scaleAbove(range.startContainer)) * 100) / 100
+    const wrap = document.createElement('span')
+    if (factor !== 1) {
+      wrap.dataset.s = String(factor)
+      wrap.style.fontSize = `${factor}em`
+    }
+    wrap.appendChild(pieces)
+    range.insertNode(wrap)
+    selectContents(wrap)
     changed()
   }
 

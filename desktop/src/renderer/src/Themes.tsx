@@ -77,7 +77,7 @@ const SHADES: string[][] = [
   ...[0.25, 0.5].map((a) => THEME_BASE.map((c) => mix(c, 0, a)))
 ]
 
-function ColourPick({ value, onChange, label }: { value: string | null; onChange: (v: string | null) => void; label: string }): React.JSX.Element {
+export function ColourPick({ value, onChange, label }: { value: string | null; onChange: (v: string | null) => void; label: string }): React.JSX.Element {
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState({ left: 0, top: 0 })
   const button = useRef<HTMLButtonElement>(null)

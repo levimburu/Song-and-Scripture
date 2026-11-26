@@ -1,4 +1,5 @@
 import { uid } from './ids'
+import { stripMarkup } from './markup'
 import { SAMPLE_SONGS } from './sample'
 
 export interface Song {
@@ -68,7 +69,7 @@ export function searchSongs(songs: Song[], query: string): Song[] {
     if (title.startsWith(q)) starts.push(song)
     else if (words.every((w) => title.includes(w))) contains.push(song)
     else {
-      const body = plain(song.lyrics)
+      const body = plain(stripMarkup(song.lyrics))
       if (words.every((w) => body.includes(w))) lyric.push(song)
     }
   }

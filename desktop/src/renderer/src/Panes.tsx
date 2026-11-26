@@ -15,6 +15,7 @@ import {
 } from '@tabler/icons-react'
 import { useEffect, useRef, useState } from 'react'
 import { DEFAULT_DIM, type ItemType, type OutputBackground, type OutputState, type ScheduleItem, type Segment, type Slide, type SlotHint, type Theme } from '../../shared/types'
+import { stripMarkup } from '../../shared/markup'
 import { groupItems, openSlots, slotLabel } from '../../shared/plan'
 import { DEFAULT_STYLE, type DisplayStyle } from '../../shared/style'
 import { SlideView } from './SlideView'
@@ -269,7 +270,7 @@ export function LivePane({ title, slides, index, output, onGoto }: LiveProps): R
           <li key={s.id}>
             <button className={`section-btn kind-${s.kind}${i === index ? ' selected' : ''}`} onClick={() => onGoto(i)}>
               <span className="section-label">{s.label}</span>
-              <span className="section-text">{s.lines.join(" / ")}</span>
+              <span className="section-text">{stripMarkup(s.lines.join(" / "))}</span>
             </button>
           </li>
         ))}

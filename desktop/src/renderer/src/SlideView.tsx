@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { OutputState } from '../../shared/types'
 import './fonts'
+import { parseRuns } from '../../shared/markup'
 
 const W = 1920
 const H = 1080
@@ -111,7 +112,15 @@ export function SlideView({ output, compact = false, animate = false }: Props): 
               }}
             >
               {slide.lines.map((line, i) => (
-                <div key={i}>{line}</div>
+                <div key={i}>
+                  {parseRuns(line).map((run, j) =>
+                    run.color || run.scale ? (
+                      <span key={j} style={{ color: run.color, fontSize: run.scale ? `${run.scale}em` : undefined }}>{run.text}</span>
+                    ) : (
+                      run.text
+                    )
+                  )}
+                </div>
               ))}
             </div>
             {slide.reference && ref.show && (

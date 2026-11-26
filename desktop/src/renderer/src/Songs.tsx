@@ -4,7 +4,9 @@ import { isSectionHeader, splitLyrics } from '../../shared/lyrics'
 import { itemFromSong } from '../../shared/schedule'
 import { DEFAULT_LINES, newSong, parseSongs, searchSongs, seedSongs, WHOLE_SECTION, type Song } from '../../shared/songs'
 import type { MediaFile, OutputState, ScheduleItem, Slide } from '../../shared/types'
+import { applyColour, applyScale, clearColour, clearFormatting, stripMarkup, type Edit } from '../../shared/markup'
 import { BackgroundPicker } from './BackgroundPicker'
+import { ColourPick } from './Themes'
 import { SlideView } from './SlideView'
 
 const WORDS = {
@@ -70,6 +72,9 @@ export function Songs({ variant = 'songs', onAdd, onShowNow, preview, media, onA
   const [confirmDelete, setConfirmDelete] = useState(false)
   const listRef = useRef<HTMLUListElement>(null)
   const [caret, setCaret] = useState(0)
+  const textRef = useRef<HTMLTextAreaElement>(null)
+  const [lastColour, setLastColour] = useState<string | null>(null)
+  const [formatHint, setFormatHint] = useState(false)
 
   useEffect(() => {
     try {
@@ -118,6 +123,25 @@ export function Songs({ variant = 'songs', onAdd, onShowNow, preview, media, onA
       setQuery('')
     }
     setEditing(null)
+  }
+
+  /** Colours or resizes the words selected in the text box. The selection stays so another change can follow. */
+  function format(change: (text: string, start: number, end: number) => Edit): void {
+    const el = textRef.current
+    if (!el || !editing) return
+    const { selectionStart: start, selectionEnd: end } = el
+    if (start === end) {
+      setFormatHint(true)
+      el.focus()
+      return
+    }
+    setFormatHint(false)
+    const edit = change(editing.lyrics, start, end)
+    setEditing({ ...editing, lyrics: edit.text })
+    requestAnimationFrame(() => {
+      el.focus()
+      el.setSelectionRange(edit.start, edit.end)
+    })
   }
 
   function remove(): void {
@@ -249,7 +273,7 @@ export function Songs({ variant = 'songs', onAdd, onShowNow, preview, media, onA
                   onDoubleClick={() => show(i)}
                 >
                   <span className="verse-num wide">{slide.label}</span>
-                  <span className="verse-text">{slide.lines.join(' / ')}</span>
+                  <span className="verse-text">{stripMarkup(slide.lines.join(' / '))}</span>
                 </li>
               ))}
             </ul>
@@ -274,9 +298,24 @@ export function Songs({ variant = 'songs', onAdd, onShowNow, preview, media, onA
               />
             </label>
             <div className="editor-split">
-            <label className="field">
+            <div className="field">
               {w.textLabel}
+              <div className="format-bar" role="toolbar" aria-label="Text formatting">
+                <ColourPick
+                  label="Text colour"
+                  value={lastColour}
+                  onChange={(c) => {
+                    setLastColour(c)
+                    format(c ? (t, s, e) => applyColour(t, s, e, c) : clearColour)
+                  }}
+                />
+                <button className="btn small" onMouseDown={(e) => e.preventDefault()} onClick={() => format((t, s, e) => applyScale(t, s, e, 1.25))} title="Make the selected words bigger" aria-label="Bigger">A+</button>
+                <button className="btn small" onMouseDown={(e) => e.preventDefault()} onClick={() => format((t, s, e) => applyScale(t, s, e, 0.8))} title="Make the selected words smaller" aria-label="Smaller">A−</button>
+                <button className="btn small" onMouseDown={(e) => e.preventDefault()} onClick={() => format(clearFormatting)} title="Remove colour and size from the selected words">Clear</button>
+                <span className={formatHint ? 'unsaved' : 'muted'}>{formatHint ? 'Select the words first.' : 'Select words, then pick a colour or size.'}</span>
+              </div>
               <textarea
+                ref={textRef}
                 value={editing.lyrics}
                 rows={14}
                 maxLength={20000}
@@ -289,7 +328,7 @@ export function Songs({ variant = 'songs', onAdd, onShowNow, preview, media, onA
                 aria-label={w.lyricsHint}
                 placeholder={w.sample}
               />
-            </label>
+            </div>
             <div className="editor-preview" aria-label="Preview">
               <div className="screen-frame">
                 <SlideView output={preview(caretSlide ?? { id: 'p', kind: 'verse', label: '', lines: [''] }, editing.background)} compact />

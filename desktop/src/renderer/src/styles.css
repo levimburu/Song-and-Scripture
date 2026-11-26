@@ -356,3 +356,5 @@ select.mini.wide { min-width: 200px; }
 .schedule-row.filling { border-color: var(--blue); color: var(--text); }
 .seg-add { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .seg-add .seg-input { flex: 1 1 100%; }
+
+.format-bar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }

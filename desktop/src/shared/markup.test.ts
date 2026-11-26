@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyColour, applyScale, clearFormatting, parseRuns, stripMarkup } from './markup'
+import { applyColour, applyScale, clearFormatting, parseRuns, stripMarkup, tagsFor } from './markup'
 
 describe('text markup', () => {
   it('reads colour and size', () => {
@@ -17,7 +17,7 @@ describe('text markup', () => {
   })
 
   it('leaves unclear tags as plain text and ignores stray closers', () => {
-    expect(parseRuns('[c=red]no[/c]')).toEqual([{ text: '[c=red]no' }])
+    expect(parseRuns("[c=red]no[/c]")).toEqual([{ text: "[c=red]no" }])
     expect(parseRuns('[s=9]huge[/s]')).toEqual([{ text: '[s=9]huge' }])
     expect(parseRuns('[Chorus] stays')).toEqual([{ text: '[Chorus] stays' }])
     expect(parseRuns('')).toEqual([{ text: '' }])
@@ -45,5 +45,27 @@ describe('text markup', () => {
     expect(applyColour('abc', 1, 1, '#ff0000').text).toBe('abc')
     expect(applyColour('abc', 0, 3, 'red').text).toBe('abc')
     expect(applyScale('abc', 0, 3, 10).text).toBe('abc')
+  })
+})
+
+describe('bold, italic, underline, strike and highlight', () => {
+  it('reads them and writes the same tags back', () => {
+    const runs = parseRuns('[b][i]a[/i][/b] [nb][u][x]b[/x][/u][/nb][h=#ffff00]c[/h]')
+    expect(runs[0]).toEqual({ text: 'a', bold: true, italic: true })
+    expect(runs[2]).toEqual({ text: 'b', bold: false, underline: true, strike: true })
+    expect(runs[3]).toEqual({ text: 'c', highlight: '#ffff00' })
+    const tags = tagsFor({ bold: true, italic: true })
+    expect(tags).toEqual({ open: '[b][i]', close: '[/i][/b]' })
+    expect(stripMarkup('[b]a[/b][nb]b[/nb][u]c[/u][h=#ffff00]d[/h]')).toBe('abcd')
+  })
+})
+
+describe('font and outline', () => {
+  it('reads a known font and outline, and ignores an unknown font', () => {
+    const runs = parseRuns('[f=Inter]a[/f][o]b[/o]')
+    expect(runs[0]).toEqual({ text: 'a', font: 'Inter' })
+    expect(runs[1]).toEqual({ text: 'b', outline: true })
+    expect(parseRuns('[f=Nope]x')[0].font).toBeUndefined()
+    expect(tagsFor({ outline: true, font: 'Inter' }).open).toContain('[o]')
   })
 })

@@ -114,8 +114,22 @@ export function SlideView({ output, compact = false, animate = false }: Props): 
               {slide.lines.map((line, i) => (
                 <div key={i}>
                   {parseRuns(line).map((run, j) =>
-                    run.color || run.scale ? (
-                      <span key={j} style={{ color: run.color, fontSize: run.scale ? `${run.scale}em` : undefined }}>{run.text}</span>
+                    run.color || run.scale || run.highlight || run.bold !== undefined || run.italic || run.underline || run.strike || run.outline || run.font ? (
+                      <span
+                        key={j}
+                        style={{
+                          color: run.color,
+                          backgroundColor: run.highlight,
+                          fontSize: run.scale ? `${run.scale}em` : undefined,
+                          fontWeight: run.bold === undefined ? undefined : run.bold ? 700 : 400,
+                          fontStyle: run.italic ? 'italic' : undefined,
+                          fontFamily: run.font ? `'${run.font}', system-ui, sans-serif` : undefined,
+                          textDecoration: [run.underline ? 'underline' : '', run.strike ? 'line-through' : ''].filter(Boolean).join(' ') || undefined,
+                          ...(run.outline ? ({ WebkitTextStroke: '0.04em #000', paintOrder: 'stroke fill' } as React.CSSProperties) : {})
+                        }}
+                      >
+                        {run.text}
+                      </span>
                     ) : (
                       run.text
                     )

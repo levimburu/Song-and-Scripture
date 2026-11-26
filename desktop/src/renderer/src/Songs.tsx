@@ -4,10 +4,12 @@ import { isSectionHeader, splitLyrics } from '../../shared/lyrics'
 import { itemFromSong } from '../../shared/schedule'
 import { DEFAULT_LINES, newSong, parseSongs, searchSongs, seedSongs, WHOLE_SECTION, type Song } from '../../shared/songs'
 import type { MediaFile, OutputState, ScheduleItem, Slide } from '../../shared/types'
-import { applyColour, applyScale, clearColour, clearFormatting, stripMarkup, type Edit } from '../../shared/markup'
+import { stripMarkup } from '../../shared/markup'
 import { BackgroundPicker } from './BackgroundPicker'
-import { ColourPick } from './Themes'
+import { RichEditor } from './RichEditor'
 import { SlideView } from './SlideView'
+
+const MAX_LYRICS = 20000
 
 const WORDS = {
   songs: {
@@ -71,10 +73,7 @@ export function Songs({ variant = 'songs', onAdd, onShowNow, preview, media, onA
   const [editing, setEditing] = useState<{ id: string | null; title: string; lyrics: string; lines: number; background?: string | null } | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const listRef = useRef<HTMLUListElement>(null)
-  const [caret, setCaret] = useState(0)
-  const textRef = useRef<HTMLTextAreaElement>(null)
-  const [lastColour, setLastColour] = useState<string | null>(null)
-  const [formatHint, setFormatHint] = useState(false)
+  const [caretText, setCaretText] = useState('')
 
   useEffect(() => {
     try {
@@ -83,6 +82,8 @@ export function Songs({ variant = 'songs', onAdd, onShowNow, preview, media, onA
       // Storage full or blocked: the app still works, the library just will not persist.
     }
   }, [songs])
+
+  useEffect(() => setCaretText(''), [editing === null])
 
   const found = useMemo(() => searchSongs(songs, query), [songs, query])
   const song = found.find((s) => s.id === selectedId) ?? found[0] ?? null
@@ -125,25 +126,6 @@ export function Songs({ variant = 'songs', onAdd, onShowNow, preview, media, onA
     setEditing(null)
   }
 
-  /** Colours or resizes the words selected in the text box. The selection stays so another change can follow. */
-  function format(change: (text: string, start: number, end: number) => Edit): void {
-    const el = textRef.current
-    if (!el || !editing) return
-    const { selectionStart: start, selectionEnd: end } = el
-    if (start === end) {
-      setFormatHint(true)
-      el.focus()
-      return
-    }
-    setFormatHint(false)
-    const edit = change(editing.lyrics, start, end)
-    setEditing({ ...editing, lyrics: edit.text })
-    requestAnimationFrame(() => {
-      el.focus()
-      el.setSelectionRange(edit.start, edit.end)
-    })
-  }
-
   function remove(): void {
     if (!song) return
     setSongs((all) => all.filter((s) => s.id !== song.id))
@@ -170,7 +152,7 @@ export function Songs({ variant = 'songs', onAdd, onShowNow, preview, media, onA
   const caretSlide = useMemo(() => {
     if (!editing || editSlides.length === 0) return null
     // Count the lyric lines (not blank lines or headings) up to the cursor, then find the screen that holds that line.
-    const upTo = editing.lyrics.slice(0, caret).replace(/\r\n?/g, '\n').split('\n')
+    const upTo = caretText.replace(/\r\n?/g, '\n').split('\n')
     const current = upTo.length > 0 && upTo[upTo.length - 1].trim() !== '' && (w.plain || !isSectionHeader(upTo[upTo.length - 1]))
     let n = upTo.filter((l) => l.trim() !== '' && (w.plain || !isSectionHeader(l))).length
     if (!current) n += 1 // on a blank or heading line: show the screen that comes next
@@ -180,8 +162,9 @@ export function Songs({ variant = 'songs', onAdd, onShowNow, preview, media, onA
       if (n <= seen) return slide
     }
     return editSlides[editSlides.length - 1]
-  }, [editing, editSlides, caret])
+  }, [editing, editSlides, caretText])
 
+  const base = preview({ id: 'base', kind: 'verse', label: '', lines: [''] }).style.songs
   const stanzaCount = editing ? splitLyrics(editing.lyrics, { maxLines: editing.lines, plain: w.plain }).length : 0
 
   return (
@@ -300,34 +283,17 @@ export function Songs({ variant = 'songs', onAdd, onShowNow, preview, media, onA
             <div className="editor-split">
             <div className="field">
               {w.textLabel}
-              <div className="format-bar" role="toolbar" aria-label="Text formatting">
-                <ColourPick
-                  label="Text colour"
-                  value={lastColour}
-                  onChange={(c) => {
-                    setLastColour(c)
-                    format(c ? (t, s, e) => applyColour(t, s, e, c) : clearColour)
-                  }}
-                />
-                <button className="btn small" onMouseDown={(e) => e.preventDefault()} onClick={() => format((t, s, e) => applyScale(t, s, e, 1.25))} title="Make the selected words bigger" aria-label="Bigger">A+</button>
-                <button className="btn small" onMouseDown={(e) => e.preventDefault()} onClick={() => format((t, s, e) => applyScale(t, s, e, 0.8))} title="Make the selected words smaller" aria-label="Smaller">A−</button>
-                <button className="btn small" onMouseDown={(e) => e.preventDefault()} onClick={() => format(clearFormatting)} title="Remove colour and size from the selected words">Clear</button>
-                <span className={formatHint ? 'unsaved' : 'muted'}>{formatHint ? 'Select the words first.' : 'Select words, then pick a colour or size.'}</span>
-              </div>
-              <textarea
-                ref={textRef}
-                value={editing.lyrics}
-                rows={14}
-                maxLength={20000}
-                onChange={(e) => {
-                  setEditing({ ...editing, lyrics: e.target.value })
-                  setCaret(e.target.selectionStart)
-                }}
-                onKeyUp={(e) => setCaret(e.currentTarget.selectionStart)}
-                onClick={(e) => setCaret(e.currentTarget.selectionStart)}
-                aria-label={w.lyricsHint}
+              <RichEditor
+                key={editing.id ?? 'new'}
+                initial={editing.lyrics}
+                font={base.font}
+                bold={base.bold}
+                label={w.lyricsHint}
                 placeholder={w.sample}
+                onChange={(lyrics) => setEditing((cur) => (cur ? { ...cur, lyrics } : cur))}
+                onCaret={setCaretText}
               />
+              {editing.lyrics.length > MAX_LYRICS && <span className="unsaved">Too long to save. Take some text out.</span>}
             </div>
             <div className="editor-preview" aria-label="Preview">
               <div className="screen-frame">
@@ -363,8 +329,8 @@ export function Songs({ variant = 'songs', onAdd, onShowNow, preview, media, onA
             <p className="muted">{w.help}</p>
             <div className="modal-actions">
               <button className="btn" onClick={() => setEditing(null)}>Cancel</button>
-              <button className="btn primary" disabled={editing.title.trim() === '' || editing.lyrics.trim() === ''} onClick={save}>
-                Save song
+              <button className="btn primary" disabled={editing.title.trim() === '' || editing.lyrics.trim() === '' || editing.lyrics.length > MAX_LYRICS} onClick={save}>
+                {variant === 'songs' ? 'Save song' : 'Save entry'}
               </button>
             </div>
           </div>

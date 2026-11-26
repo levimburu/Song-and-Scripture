@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, net, protocol, screen } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, net, powerSaveBlocker, protocol, screen } from 'electron'
 import { readFile, stat } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -29,6 +29,9 @@ function decodeText(buffer: Buffer): string {
 let operatorWindow: BrowserWindow | null = null
 let outputWindow: BrowserWindow | null = null
 let outputOnSecondary = false
+// The operator wants the projector on. It survives a cable being pulled or a projector being switched off, so the output comes back by itself.
+let wantOutput = false
+let keepAwake: number | null = null
 let lastState: OutputState = DEFAULT_OUTPUT
 
 const MODES = new Set(['slide', 'black', 'logo', 'clear'])
@@ -147,15 +150,30 @@ function openOutput(): void {
   lockNavigation(window)
 
   window.once('ready-to-show', () => {
-    if (secondary) window.setFullScreen(true)
+    if (secondary) {
+      // Mixed display scaling (for example a 125% laptop with a 100% projector) can put a new window slightly off, so set the bounds again.
+      window.setBounds(secondary.bounds)
+      window.setFullScreen(true)
+    }
     window.showInactive()
+    // Keep the keyboard on the operator screen: Down arrow, Ctrl+C and the rest only work there.
+    if (secondary) operatorWindow?.focus()
   })
+  window.on('focus', () => {
+    if (outputOnSecondary && operatorWindow && !operatorWindow.isDestroyed()) operatorWindow.focus()
+  })
+  // The laptop must not dim or sleep in the middle of a service.
+  if (keepAwake === null) keepAwake = powerSaveBlocker.start('prevent-display-sleep')
   window.webContents.on('did-finish-load', () => {
     window.webContents.send(IPC.outputState, lastState)
   })
   window.on('closed', () => {
     outputWindow = null
     outputOnSecondary = false
+    if (keepAwake !== null) {
+      powerSaveBlocker.stop(keepAwake)
+      keepAwake = null
+    }
     broadcastDisplayInfo()
   })
 
@@ -221,17 +239,33 @@ function registerIpc(): void {
 
   ipcMain.handle(IPC.toggleOutput, () => {
     if (outputWindow) {
+      wantOutput = false
       outputWindow.close()
       return { ...displayInfo(), outputOpen: false, outputOnSecondary: false }
     }
+    wantOutput = true
     openOutput()
     return displayInfo()
   })
 }
 
 function registerScreenEvents(): void {
-  screen.on('display-added', broadcastDisplayInfo)
+  screen.on('display-added', () => {
+    broadcastDisplayInfo()
+    if (!wantOutput || !findSecondaryDisplay()) return
+    if (!outputWindow) {
+      // The projector came back (or was plugged in late): put the output on it.
+      openOutput()
+    } else if (!outputOnSecondary) {
+      // The output was in a small window because there was no second screen. Move it to the projector.
+      outputWindow.once('closed', () => {
+        if (wantOutput && !outputWindow) openOutput()
+      })
+      outputWindow.close()
+    }
+  })
   screen.on('display-removed', () => {
+    // Cable pulled or projector off: close the output window, but remember that the operator wants it, so it returns with the screen.
     if (outputWindow && outputOnSecondary && findSecondaryDisplay() === null) {
       outputWindow.close()
     }
@@ -255,6 +289,11 @@ void app.whenReady().then(() => {
   registerIpc()
   registerScreenEvents()
   createOperatorWindow()
+  // A projector already plugged in at start: open the output on it without a click.
+  if (findSecondaryDisplay() !== null) {
+    wantOutput = true
+    openOutput()
+  }
 })
 
 app.on('window-all-closed', () => {

@@ -187,7 +187,7 @@ export function App(): React.JSX.Element {
   if (display.outputOpen && display.outputOnSecondary) projector = { cls: 'green', text: 'Projector connected' }
   else if (display.outputOpen) projector = { cls: 'amber', text: 'Output in a window (no second screen)' }
   else if (display.count > 1) projector = { cls: 'amber', text: 'Second screen found, output closed' }
-  else projector = { cls: 'amber', text: 'No second screen, output closed' }
+  else projector = { cls: 'amber', text: 'No second screen. Press Win+P and choose Extend' }
 
   return (
     <div className={`app${trayExpanded ? ' tray-expanded' : ''}`}>

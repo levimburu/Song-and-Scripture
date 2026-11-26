@@ -55,18 +55,37 @@ export function SlideView({ output, compact = false, animate = false }: Props): 
   useLayoutEffect(() => {
     const el = textRef.current
     if (!el || !lines) return
-    let low = MIN_FONT
-    let high = Math.max(MIN_FONT, textStyle.maxSize)
-    while (low < high) {
-      const mid = Math.ceil((low + high) / 2)
-      el.style.fontSize = `${mid}px`
+    const fits = (): boolean => {
       // Add up the lines instead of using scrollHeight: the text is centred, so overflow above the box is not counted there.
       let used = 0
       for (const child of Array.from(el.children)) used += (child as HTMLElement).offsetHeight
-      if (used <= el.clientHeight && el.scrollWidth <= el.clientWidth) low = mid
-      else high = mid - 1
+      return used <= el.clientHeight && el.scrollWidth <= el.clientWidth
     }
-    el.style.fontSize = `${low}px`
+    const search = (from: number, to: number): number => {
+      let low = from
+      let high = Math.max(from, to)
+      while (low < high) {
+        const mid = Math.ceil((low + high) / 2)
+        el.style.fontSize = `${mid}px`
+        if (fits()) low = mid
+        else high = mid - 1
+      }
+      return low
+    }
+    const sized = lines.some((line) => parseRuns(line).some((run) => run.scale))
+    // Plain text: fill the screen, one row per line.
+    el.style.whiteSpace = ''
+    el.style.setProperty('--zoom', '0')
+    const base = search(MIN_FONT, textStyle.maxSize)
+    if (sized) {
+      // The operator made some words bigger, so they must really show bigger: start from the size the plain text
+      // would have, apply their sizes on top, let long lines wrap, and shrink only if the screen would overflow.
+      el.style.setProperty('--zoom', '1')
+      el.style.whiteSpace = 'normal'
+      el.style.fontSize = `${search(MIN_FONT, base)}px`
+      return
+    }
+    el.style.fontSize = `${base}px`
   }, [lines, isScripture, textStyle.maxSize, textStyle.font, textStyle.bold, scale, fontTick, ref.show, ref.position, ref.size])
 
   const bg =
@@ -120,7 +139,7 @@ export function SlideView({ output, compact = false, animate = false }: Props): 
                         style={{
                           color: run.color,
                           backgroundColor: run.highlight,
-                          fontSize: run.scale ? `${run.scale}em` : undefined,
+                          fontSize: run.scale ? `calc(1em + ${Math.round((run.scale - 1) * 100) / 100}em * var(--zoom, 1))` : undefined,
                           fontWeight: run.bold === undefined ? undefined : run.bold ? 700 : 400,
                           fontStyle: run.italic ? 'italic' : undefined,
                           fontFamily: run.font ? `'${run.font}', system-ui, sans-serif` : undefined,
